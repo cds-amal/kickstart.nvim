@@ -950,5 +950,97 @@ require('lazy').setup({
   },
 })
 
+vim.api.nvim_create_autocmd('BufReadPost', {
+  pattern = 'COMMIT_EDITMSG',
+  callback = function()
+    local function get_my_email()
+      local handle = io.popen 'git config user.email'
+      if not handle then
+        return nil
+      end
+      local email = handle:read '*l'
+      handle:close()
+      return email
+    end
+
+    local function get_commits_from_rebase()
+      -- Read from the rebase todo file to get the commits being squashed
+      local rebase_todo_paths = {
+        '.git/rebase-merge/git-rebase-todo',
+        '.git/rebase-apply', -- fallback for older or different modes
+      }
+
+      for _, path in ipairs(rebase_todo_paths) do
+        local file = io.open(path, 'r')
+        if file then
+          local commits = {}
+          for line in file:lines() do
+            local sha = line:match '^(pick|squash|fixup) ([a-f0-9]+)'
+            if sha then
+              table.insert(commits, sha)
+            end
+          end
+          file:close()
+          return commits
+        end
+      end
+
+      return {}
+    end
+
+    local function get_coauthors_from_commits(commits, my_email)
+      local seen = {}
+      local coauthors = {}
+
+      for _, sha in ipairs(commits) do
+        local cmd = "git show -s --format='%an <%ae>' " .. sha
+        local handle = io.popen(cmd)
+        if handle then
+          local author = handle:read '*l'
+          handle:close()
+
+          if author and not author:match(my_email, 1, true) and not seen[author] then
+            seen[author] = true
+            table.insert(coauthors, 'Co-authored-by: ' .. author)
+          end
+        end
+      end
+
+      table.sort(coauthors)
+      return coauthors
+    end
+
+    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    local my_email = get_my_email()
+    local commits = get_commits_from_rebase()
+    local coauthors = get_coauthors_from_commits(commits, my_email)
+
+    -- Avoid duplication
+    local existing = {}
+    for _, line in ipairs(lines) do
+      local match = line:match '^Co%-authored%-by: (.+)$'
+      if match then
+        existing[match] = true
+      end
+    end
+
+    local to_add = {}
+    for _, trailer in ipairs(coauthors) do
+      local who = trailer:match '^Co%-authored%-by: (.+)$'
+      if not existing[who] then
+        table.insert(to_add, trailer)
+      end
+    end
+
+    if #to_add > 0 then
+      if lines[#lines]:match '%S' then
+        table.insert(lines, '')
+      end
+      vim.list_extend(lines, to_add)
+      vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+    end
+  end,
+})
+
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
