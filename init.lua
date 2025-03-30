@@ -157,6 +157,8 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end ---@diagnostic disable-next-line: undefined-field
 vim.opt.rtp:prepend(lazypath)
 
+require 'filetypes'
+
 -- [[ Configure and install plugins ]]
 --
 --  To check the current status of your plugins, run
@@ -950,5 +952,15 @@ require('lazy').setup({
   },
 })
 
+require 'custom.plugins.customgit.commit'
+require 'custom.plugins.utils.messages'
+
+_G.dd = function(...)
+  require('snacks').debug.inspect(...)
+end
+_G.bt = function()
+  require('snacks').debug.backtrace()
+end
+vim.print = _G.dd
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
