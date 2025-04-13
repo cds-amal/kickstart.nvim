@@ -3,6 +3,9 @@
 --
 -- See the kickstart.nvim README for more information
 return {
+  require 'custom.plugins.telescope.multigrep',
+  require 'custom.plugins.ai.codecompanion',
+
   {
     'ray-x/go.nvim',
     dependencies = { -- optional packages
