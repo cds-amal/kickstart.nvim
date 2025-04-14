@@ -21,6 +21,10 @@ return {
     'williamboman/mason.nvim',
     'jay-babu/mason-nvim-dap.nvim',
 
+    'mfussenegger/nvim-dap',
+    -- 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'},
+    'theHamsta/nvim-dap-virtual-text',
+
     -- Add your own debuggers here
     'leoluz/nvim-dap-go',
   },
@@ -95,8 +99,11 @@ return {
       ensure_installed = {
         -- Update this to ensure that you have the debuggers for the langs you want
         'delve',
+        'deno',
       },
     }
+
+    require('nvim-dap-virtual-text').setup()
 
     -- Dap UI setup
     -- For more information, see |:help nvim-dap-ui|
