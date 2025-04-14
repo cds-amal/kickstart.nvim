@@ -1,0 +1,1 @@
+std = "lua51+neovim"  # combines Lua 5.1 with neovim

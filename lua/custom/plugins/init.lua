@@ -2,4 +2,11 @@
 --  I promise not to create any merge conflicts in this directory :)
 --
 -- See the kickstart.nvim README for more information
-return {}
+
+return {
+  -- Load custome plugins
+  require 'custom.plugins.treesitter.treesitter',
+  require 'custom.plugins.languages',
+  require 'custom.plugins.git.git',
+  -- require 'custom.plugins.jq-treesitter',
+}

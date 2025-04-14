@@ -21,6 +21,10 @@ return {
     'mason-org/mason.nvim',
     'jay-babu/mason-nvim-dap.nvim',
 
+    'mfussenegger/nvim-dap',
+    -- 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'},
+    'theHamsta/nvim-dap-virtual-text',
+
     -- Add your own debuggers here
     'leoluz/nvim-dap-go',
   },
@@ -95,8 +99,12 @@ return {
       ensure_installed = {
         -- Update this to ensure that you have the debuggers for the langs you want
         'delve',
+        'deno',
+        'codelldb', -- keeping this for rustaceanvim to use
       },
     }
+
+    require('nvim-dap-virtual-text').setup()
 
     -- Dap UI setup
     -- For more information, see |:help nvim-dap-ui|
@@ -117,6 +125,38 @@ return {
           terminate = '⏹',
           disconnect = '⏏',
         },
+      },
+      layouts = {
+        {
+          elements = {
+            { id = "scopes", size = 0.35 },
+            { id = "breakpoints", size = 0.20 },
+            { id = "stacks", size = 0.25 },
+            { id = "watches", size = 0.20 },
+          },
+          size = 50,  -- Wider sidebar for better visibility
+          position = "left",
+        },
+        {
+          elements = {
+            { id = "repl", size = 0.5 },
+            { id = "console", size = 0.5 },
+          },
+          size = 12,
+          position = "bottom",
+        },
+      },
+      floating = {
+        max_height = 0.9,
+        max_width = 0.9,
+        border = "rounded",
+        mappings = {
+          close = { "q", "<Esc>" },
+        },
+      },
+      render = {
+        max_type_length = nil, -- Show full type names
+        max_value_lines = 100, -- Show more lines for multiline values
       },
     }
 
