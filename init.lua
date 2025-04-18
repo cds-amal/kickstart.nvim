@@ -92,6 +92,8 @@ vim.opt.confirm = true
 vim.opt.cursorline = true
 vim.opt.cursorcolumn = true
 
+vim.opt.conceallevel = 2
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
