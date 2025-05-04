@@ -861,6 +861,36 @@ require('lazy').setup({
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
 
+      require('mini.comment').setup {
+        options = {
+          custom_commentstring = function(ref_position)
+            -- Get current buffer's filetype
+            local ft = vim.bo.filetype
+
+            -- For Cue files, use the appropriate comment string
+            if ft == 'cue' then
+              return '// %s'
+            end
+
+            -- For embedded Cue code in other files, check the tree-sitter context
+            if vim.fn.has 'nvim-0.9' == 1 then
+              local has_parser, parser = pcall(vim.treesitter.get_parser, 0)
+              if has_parser and parser then
+                -- Check if we're in Cue language context at the reference position
+                local row, col = ref_position[1] - 1, ref_position[2] - 1
+                local lang_tree = parser:language_for_range { row, col, row, col + 1 }
+                if lang_tree and lang_tree:lang() == 'cue' then
+                  return '// %s'
+                end
+              end
+            end
+
+            -- For other cases, use the default detection
+            return nil
+          end,
+        },
+      }
+
       -- Simple and easy statusline.
       --  You could remove this setup call if you don't like it,
       --  and try some other statusline plugin
