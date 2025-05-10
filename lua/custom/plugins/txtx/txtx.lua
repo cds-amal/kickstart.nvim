@@ -452,7 +452,7 @@ function M.setup(opts)
       local content = vim.api.nvim_buf_get_lines(0, 0, -1, false)
       if has_runbooks_entry(content) then
         vim.b.has_runbooks = true
-        vim.notify('Runbook navigation enabled for this file', vim.log.levels.INFO)
+        -- vim.notify('Runbook navigation enabled for this file', vim.log.levels.INFO)
       end
     end,
   })

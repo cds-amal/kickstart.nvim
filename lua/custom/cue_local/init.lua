@@ -10,6 +10,4 @@ function M.setup()
   end, {})
 end
 
-print 'cue-local loaded!'
-
 return M
