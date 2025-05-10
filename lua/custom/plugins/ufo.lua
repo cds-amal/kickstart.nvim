@@ -21,6 +21,11 @@ return {
 
     ufo.setup {
       provider_selector = function(bufnr, filetype, buftype)
+        -- Use indent provider specifically for yml files
+        if filetype == 'yaml' or filetype == 'yml' then
+          return 'indent'
+        end
+        -- For other filetypes, use default providers
         return { 'lsp', 'indent' }
       end,
     }
