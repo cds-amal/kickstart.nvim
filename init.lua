@@ -1205,6 +1205,7 @@ require('lazy').setup({
 
 require 'custom.plugins.customgit.commit'
 require 'custom.plugins.utils.messages'
+require 'custom.keymaps'
 
 _G.dd = function(...)
   require('snacks').debug.inspect(...)
