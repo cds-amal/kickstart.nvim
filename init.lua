@@ -569,6 +569,25 @@ require('lazy').setup({
               vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
             end, '[T]oggle Inlay [H]ints')
           end
+          vim.api.nvim_create_autocmd('CursorHold', {
+            callback = function()
+              local _, win = vim.diagnostic.open_float(nil, { focusable = false, source = 'if_many' })
+
+              if not win then
+                return
+              end
+
+              local cfg = vim.api.nvim_win_get_config(win)
+
+              cfg.anchor = 'NE'
+              cfg.row = 0
+              cfg.col = vim.o.columns - 1
+              cfg.width = math.min(cfg.width or 999, math.floor(vim.o.columns * 0.6))
+              cfg.height = math.min(cfg.height or 999, math.floor(vim.o.lines * 0.4))
+
+              vim.api.nvim_win_set_config(win, cfg)
+            end,
+          })
         end,
       })
 
