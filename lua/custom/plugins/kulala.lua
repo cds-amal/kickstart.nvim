@@ -1,13 +1,45 @@
 return {
   'mistweaverco/kulala.nvim',
   keys = {
-    { '<leader>rs', desc = 'Send request' },
-    { '<leader>ra', desc = 'Send all requests' },
-    { '<leader>rb', desc = 'Open scratchpad' },
+    {
+      '<leader>Rs',
+      function()
+        require('kulala').run()
+      end,
+      desc = '[R]equest [S]end request',
+    },
+    {
+      '<leader>Ra',
+      function()
+        require('kulala').run_all()
+      end,
+      desc = 'Send all requests',
+    },
+    {
+      '<leader>Rb',
+      function()
+        require('kulala').scratchpad()
+      end,
+      desc = 'Open scratchpad',
+    },
+    {
+      '<leader>Rr',
+      function()
+        require('kulala').replay()
+      end,
+      desc = 'Replay last request',
+    },
+    {
+      '<leader>Rt',
+      function()
+        require('kulala').toggle_view()
+      end,
+      desc = 'Toggle headers/body',
+    },
   },
   ft = { 'http', 'rest' },
   opts = {
-    -- your configuration comes here
     global_keymaps = true,
+    -- Add other options as needed
   },
 }
