@@ -98,6 +98,25 @@ vim.opt.cursorcolumn = true
 
 vim.opt.conceallevel = 2
 
+-- Use spaces by default
+vim.opt.expandtab = true
+vim.opt.shiftwidth = 4
+vim.opt.tabstop = 4
+
+-- disable vim sleuth for cue files
+vim.g.sleuth_cue_heuristics = 0
+
+-- But use real tabs for Makefiles!
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'make',
+  callback = function()
+    vim.opt_local.expandtab = false
+    vim.opt_local.tabstop = 8
+    vim.opt_local.shiftwidth = 8
+    vim.opt_local.softtabstop = 0
+  end,
+})
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -379,7 +398,7 @@ require('lazy').setup({
         require('telescope.builtin').find_files {
           cwd = vim.fs.joinpath(data_path, 'lazy'),
         }
-      end)
+      end, { desc = '[P]lugin path search' })
 
       require('custom.plugins.telescope.multigrep').setup()
 
@@ -639,7 +658,7 @@ require('lazy').setup({
         -- clangd = {},
         gopls = {},
         -- pyright = {},
-        -- rust_analyzer = {},
+        rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -686,7 +705,8 @@ require('lazy').setup({
 
       require('mason-lspconfig').setup {
         ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
-        automatic_installation = false,
+        automatic_installation = true,
+        automatic_enable = true,
         handlers = {
           function(server_name)
             local server = servers[server_name] or {}
