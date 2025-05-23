@@ -904,6 +904,15 @@ require('lazy').setup({
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
 
+      require('mini.files').setup {
+        -- Customization options here
+        windows = {
+          preview = true, -- Enable file/directory preview
+        },
+        -- Other options...
+      }
+      vim.keymap.set('n', '<leader>f', MiniFiles.open, { desc = 'Open mini.files explorer' })
+
       require('mini.comment').setup {
         options = {
           custom_commentstring = function(ref_position)
@@ -958,6 +967,8 @@ require('lazy').setup({
           join = 'gJ',
         },
       }
+      -- ... and there is more!
+      --  Check out: https://github.com/echasnovski/mini.nvim
 
       -- Create the autocmd for zsh-specific functionality
       vim.api.nvim_create_autocmd('FileType', {
@@ -1143,9 +1154,6 @@ require('lazy').setup({
           end, { buffer = true, desc = 'Toggle split/join for zsh commands' })
         end,
       })
-
-      -- ... and there is more!
-      --  Check out: https://github.com/echasnovski/mini.nvim
     end,
   },
   { -- Highlight, edit, and navigate code
