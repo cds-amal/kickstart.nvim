@@ -1,0 +1,379 @@
+local M = {}
+local api = vim.api
+
+-- State management
+M.navigation_stack = {}
+M.current_path = ''
+M.original_content = nil
+M.ns_id = api.nvim_create_namespace('jq_treesitter_nav')
+
+-- Initialize navigation for a buffer
+function M.setup_buffer(bufnr)
+  bufnr = bufnr or api.nvim_get_current_buf()
+  
+  -- Only setup for JSON/YAML files
+  local ft = vim.bo[bufnr].filetype
+  if ft ~= 'json' and ft ~= 'yaml' then
+    return
+  end
+  
+  -- Store original content if not already stored
+  if not M.original_content then
+    M.original_content = table.concat(api.nvim_buf_get_lines(bufnr, 0, -1, false), '\n')
+    M.navigation_stack = {}
+    M.current_path = ''
+  end
+  
+  -- Add navigation markers
+  M.update_markers(bufnr)
+  
+  -- Set up keymaps
+  local opts = { buffer = bufnr, silent = true }
+  vim.keymap.set('n', 'X', function() M.navigate_at_cursor(bufnr) end, opts)
+  vim.keymap.set('n', '<C-o>', function() M.navigate_back(bufnr) end, opts)
+  vim.keymap.set('n', '<leader>jr', function() M.reset_navigation(bufnr) end, opts)
+  vim.keymap.set('n', '<leader>jp', function() M.copy_current_path() end, opts)
+  
+  -- Setup advanced features
+  local motions = require('custom.plugins.jq-treesitter.motions')
+  local textobjects = require('custom.plugins.jq-treesitter.textobjects')
+  local preview = require('custom.plugins.jq-treesitter.preview')
+  
+  motions.setup_motions(bufnr)
+  textobjects.setup_textobjects(bufnr)
+  preview.setup_preview(bufnr)
+end
+
+-- Update navigation markers in the buffer
+function M.update_markers(bufnr)
+  -- Clear existing markers
+  api.nvim_buf_clear_namespace(bufnr, M.ns_id, 0, -1)
+  
+  -- Add breadcrumb at top
+  if M.current_path ~= '' then
+    local breadcrumb = '─ Path: ' .. M.current_path .. ' ─'
+    api.nvim_buf_set_extmark(bufnr, M.ns_id, 0, 0, {
+      virt_lines = {{
+        {string.rep('─', 80), 'Comment'},
+        {'', ''},
+        {breadcrumb, 'Title'},
+        {'', ''},
+        {string.rep('─', 80), 'Comment'}
+      }},
+      virt_lines_above = true,
+    })
+  end
+  
+  -- Get content and detect structure
+  local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local content = table.concat(lines, '\n')
+  
+  -- Find navigable items
+  local markers = M.find_navigable_items(content, lines)
+  
+  -- Add virtual text markers
+  for line, info in pairs(markers) do
+    api.nvim_buf_set_extmark(bufnr, M.ns_id, line - 1, 0, {
+      virt_text = {{' → [' .. info.key .. ']', 'Special'}},
+      virt_text_pos = 'eol',
+    })
+  end
+  
+  -- If we're in an array, add a hint about pressing X anywhere in an object
+  -- Simply check if the content starts with an array bracket
+  local is_array = content:match('^%s*%[') ~= nil
+  
+  if is_array then
+    api.nvim_buf_set_extmark(bufnr, M.ns_id, 0, 0, {
+      virt_lines = {{
+        {'Press X anywhere inside an object to navigate to it', 'Comment'}
+      }},
+      virt_lines_above = false,
+    })
+  end
+end
+
+-- Find navigable items in the content
+function M.find_navigable_items(content, lines)
+  local markers = {}
+  local is_array = content:match('^%s*%[')
+  local is_object = content:match('^%s*{')
+  
+  if is_object then
+    -- Only mark keys that have object or array values
+    for i, line in ipairs(lines) do
+      local key = line:match('^%s*"([^"]+)"%s*:')
+      if key then
+        -- Check if this line has an object or array value
+        if line:match(':%s*{') then
+          markers[i] = { key = key .. ' {}', type = 'object_key' }
+        elseif line:match(':%s*%[') then
+          markers[i] = { key = key .. ' []', type = 'object_key' }
+        else
+          -- Check if the next line starts an object or array
+          if i < #lines then
+            local next_line = lines[i + 1]
+            if next_line and (next_line:match('^%s*{') or next_line:match('^%s*%[')) then
+              local value_type = next_line:match('^%s*{') and ' {}' or ' []'
+              markers[i] = { key = key .. value_type, type = 'object_key' }
+            end
+          end
+        end
+      end
+    end
+  elseif is_array then
+    -- Don't add individual markers in array view
+    -- The special X behavior handles navigation within arrays
+  end
+  
+  return markers
+end
+
+-- Navigate to item at cursor
+function M.navigate_at_cursor(bufnr)
+  local cursor = api.nvim_win_get_cursor(0)
+  local line = cursor[1]
+  
+  -- Special handling: if we're inside an array element, navigate to that element
+  local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local content = table.concat(lines, '\n')
+  
+  -- Check if we're viewing an array by examining the content
+  local is_viewing_array = content:match('^%s*%[') ~= nil
+  
+  if is_viewing_array then
+    -- We're viewing an array
+    -- Find which element the cursor is in
+    local element_count = 0
+    local in_element = false
+    local element_start = 0
+    local element_ranges = {}
+    
+    for i, l in ipairs(lines) do
+      -- Check if this line starts an object (with any amount of whitespace)
+      if l:match('^%s*{') then
+        element_start = i
+        in_element = true
+      elseif l:match('^%s*}') and in_element then
+        in_element = false
+        -- Store this element's range
+        table.insert(element_ranges, {start = element_start, end_line = i, index = element_count})
+        element_count = element_count + 1
+      end
+    end
+    
+    -- Find which element contains the cursor
+    for _, range in ipairs(element_ranges) do
+      if line >= range.start and line <= range.end_line then
+        -- Navigate to this specific array element
+        local new_path = M.current_path .. '[' .. range.index .. ']'
+        
+        -- Debug
+        -- vim.notify('Cursor on line ' .. line .. ', navigating to ' .. new_path .. ' (element ' .. range.index .. ')', vim.log.levels.INFO)
+        
+        -- Save current state
+        table.insert(M.navigation_stack, {
+          path = M.current_path,
+          content = content
+        })
+        
+        M.current_path = new_path
+        
+        -- Get the element content
+        local temp_file = vim.fn.tempname() .. '.json'
+        vim.fn.writefile(vim.split(M.original_content, '\n'), temp_file)
+        
+        local cmd = string.format('cat %s | jq %s 2>&1', vim.fn.shellescape(temp_file), vim.fn.shellescape(new_path))
+        local handle = io.popen(cmd)
+        local new_content = handle:read('*a')
+        local success = handle:close()
+        
+        os.remove(temp_file)
+        
+        if new_content and not new_content:match('error') and success then
+          -- Replace buffer content WITHOUT saving to disk
+          api.nvim_buf_set_option(bufnr, 'modifiable', true)
+          api.nvim_buf_set_option(bufnr, 'modified', false)  -- Mark as unmodified before changes
+          local new_lines = vim.split(new_content, '\n')
+          api.nvim_buf_set_lines(bufnr, 0, -1, false, new_lines)
+          api.nvim_buf_set_option(bufnr, 'modified', false)  -- Keep as unmodified after changes
+          api.nvim_buf_set_option(bufnr, 'modifiable', true)  -- Keep modifiable for navigation
+          
+          vim.schedule(function()
+            -- Force treesitter to reparse the buffer
+            vim.treesitter.get_parser(bufnr, 'json'):parse()
+            
+            M.update_markers(bufnr)
+            -- Re-setup features for new content
+            local motions = require('custom.plugins.jq-treesitter.motions')
+            local textobjects = require('custom.plugins.jq-treesitter.textobjects')
+            motions.setup_motions(bufnr)
+            textobjects.setup_textobjects(bufnr)
+          end)
+          
+          api.nvim_win_set_cursor(0, {1, 0})
+        else
+          table.remove(M.navigation_stack)
+          vim.notify('Failed to navigate to array element', vim.log.levels.WARN)
+        end
+        
+        return
+      end
+    end
+  end
+  
+  -- Original marker-based navigation for objects
+  -- Check if there's a marker on this line
+  local extmarks = api.nvim_buf_get_extmarks(bufnr, M.ns_id, {line - 1, 0}, {line - 1, -1}, {details = true})
+  
+  local key = nil
+  for _, mark in ipairs(extmarks) do
+    local virt_text = mark[4].virt_text
+    if virt_text and virt_text[1] then
+      -- Extract key from virtual text
+      local text = virt_text[1][1]
+      -- Match " → [key ...]" pattern and extract the full key info
+      local full_key = text:match('→%s*%[(.+)%]')
+      if full_key then
+        -- Now extract just the key name (before any type indicators)
+        key = full_key:match('^([^%s]+)')
+      end
+      break
+    end
+  end
+  
+  if not key then
+    vim.notify('No navigable item on this line', vim.log.levels.INFO)
+    return
+  end
+  
+  -- Save current state
+  table.insert(M.navigation_stack, {
+    path = M.current_path,
+    content = table.concat(api.nvim_buf_get_lines(bufnr, 0, -1, false), '\n')
+  })
+  
+  -- Remove type hints from key
+  key = key:gsub('%s*{%}$', ''):gsub('%s*%[%]$', '')
+  
+  -- Build new path
+  local new_path
+  if M.current_path == '' then
+    if tonumber(key) then
+      new_path = '.[' .. key .. ']'
+    else
+      new_path = '.' .. key
+    end
+  else
+    if tonumber(key) then
+      new_path = M.current_path .. '[' .. key .. ']'
+    else
+      new_path = M.current_path .. '.' .. key
+    end
+  end
+  
+  -- Get content at new path using original content
+  local temp_file = vim.fn.tempname() .. '.json'
+  vim.fn.writefile(vim.split(M.original_content, '\n'), temp_file)
+  
+  local cmd = string.format('cat %s | jq %s 2>&1', vim.fn.shellescape(temp_file), vim.fn.shellescape(new_path))
+  local handle = io.popen(cmd)
+  local new_content = handle:read('*a')
+  local success = handle:close()
+  
+  os.remove(temp_file)
+  
+  if new_content and not new_content:match('error') and success then
+    M.current_path = new_path
+    
+    -- Replace buffer content WITHOUT saving to disk
+    api.nvim_buf_set_option(bufnr, 'modifiable', true)
+    api.nvim_buf_set_option(bufnr, 'modified', false)
+    local new_lines = vim.split(new_content, '\n')
+    
+    api.nvim_buf_set_lines(bufnr, 0, -1, false, new_lines)
+    api.nvim_buf_set_option(bufnr, 'modified', false)
+    api.nvim_buf_set_option(bufnr, 'modifiable', true)
+    
+    -- Force re-setup to ensure all features work with new content
+    vim.schedule(function()
+      -- Force treesitter to reparse the buffer
+      vim.treesitter.get_parser(bufnr, 'json'):parse()
+      
+      -- Update markers
+      M.update_markers(bufnr)
+      
+      -- Re-setup motion and text object detection
+      local motions = require('custom.plugins.jq-treesitter.motions')
+      local textobjects = require('custom.plugins.jq-treesitter.textobjects')
+      motions.setup_motions(bufnr)
+      textobjects.setup_textobjects(bufnr)
+    end)
+    
+    -- Move cursor to top
+    api.nvim_win_set_cursor(0, {1, 0})
+  else
+    table.remove(M.navigation_stack)
+    vim.notify('Cannot navigate to: ' .. key, vim.log.levels.WARN)
+  end
+end
+
+-- Navigate back
+function M.navigate_back(bufnr)
+  if #M.navigation_stack == 0 then
+    vim.notify('No navigation history', vim.log.levels.INFO)
+    return
+  end
+  
+  local prev = table.remove(M.navigation_stack)
+  M.current_path = prev.path
+  
+  -- Restore content WITHOUT saving to disk
+  api.nvim_buf_set_option(bufnr, 'modifiable', true)
+  api.nvim_buf_set_option(bufnr, 'modified', false)
+  local lines = vim.split(prev.content, '\n')
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  api.nvim_buf_set_option(bufnr, 'modified', false)
+  api.nvim_buf_set_option(bufnr, 'modifiable', true)
+  
+  -- Force re-setup to ensure all features work
+  vim.defer_fn(function()
+    M.update_markers(bufnr)
+    local motions = require('custom.plugins.jq-treesitter.motions')
+    local textobjects = require('custom.plugins.jq-treesitter.textobjects')
+    motions.setup_motions(bufnr)
+    textobjects.setup_textobjects(bufnr)
+  end, 10)
+end
+
+-- Reset navigation to original content
+function M.reset_navigation(bufnr)
+  if not M.original_content then
+    vim.notify('No original content stored', vim.log.levels.WARN)
+    return
+  end
+  
+  M.navigation_stack = {}
+  M.current_path = ''
+  
+  -- Restore original content WITHOUT saving to disk
+  api.nvim_buf_set_option(bufnr, 'modifiable', true)
+  api.nvim_buf_set_option(bufnr, 'modified', false)
+  local lines = vim.split(M.original_content, '\n')
+  api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
+  api.nvim_buf_set_option(bufnr, 'modified', false)
+  api.nvim_buf_set_option(bufnr, 'modifiable', true)
+  
+  -- Update markers
+  M.update_markers(bufnr)
+  vim.notify('Reset to original content')
+end
+
+-- Copy current path
+function M.copy_current_path()
+  local path = M.current_path == '' and '.' or M.current_path
+  vim.fn.setreg('+', path)
+  vim.notify('Copied path: ' .. path)
+end
+
+return M
