@@ -1234,6 +1234,7 @@ require('lazy').setup({
 require 'custom.plugins.customgit.commit'
 require 'custom.plugins.utils.messages'
 require 'custom.keymaps'
+require 'custom.strip-whitespaces'
 
 _G.dd = function(...)
   require('snacks').debug.inspect(...)
