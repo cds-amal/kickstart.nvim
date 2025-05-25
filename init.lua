@@ -1234,6 +1234,7 @@ require('lazy').setup({
 require 'custom.plugins.customgit.commit'
 require 'custom.plugins.utils.messages'
 require 'custom.keymaps'
+require 'custom.abi-tools'
 require 'custom.close-unnamed'
 require 'custom.strip-whitespaces'
 
