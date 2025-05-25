@@ -1237,6 +1237,7 @@ require 'custom.keymaps'
 require 'custom.abi-tools'
 require 'custom.close-unnamed'
 require 'custom.strip-whitespaces'
+require 'custom.virtual-copy'
 
 _G.dd = function(...)
   require('snacks').debug.inspect(...)
