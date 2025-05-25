@@ -1,12 +1,10 @@
 return {
-  dir = vim.fn.stdpath 'config' .. '/lua/custom/plugins/jq-treesitter',
-  name = 'jq-treesitter',
+  'cds-io/jq-treesitter.nvim',
   ft = { 'json', 'yaml' },
   dependencies = {
     'nvim-treesitter/nvim-treesitter',
   },
   config = function()
-    require('custom.plugins.jq-treesitter.init').setup()
+    require('jq-treesitter').setup()
   end,
-  cmd = { 'JqtList', 'JqtQuery', 'JqtPath', 'JqtMarkdownTable' },
 }

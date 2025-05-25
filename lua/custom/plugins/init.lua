@@ -9,5 +9,5 @@ return {
   require 'custom.plugins.languages',
   require 'custom.plugins.git.git',
   require 'custom.plugins.eth-explorer',
-  require 'custom.plugins.jq-treesitter',
+  -- require 'custom.plugins.jq-treesitter',
 }
