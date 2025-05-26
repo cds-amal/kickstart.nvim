@@ -902,7 +902,17 @@ require('lazy').setup({
       -- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
-      require('mini.surround').setup()
+      require('mini.surround').setup {
+        custom_surroundings = {
+
+          -- - saiw c - surround inner word with console code fence
+          -- - sa2j c - surround current line and next line with console code fence
+          -- - In visual mode: select your text, then sa c
+          ['c'] = {
+            output = { left = '```console\n', right = '\n```' },
+          },
+        },
+      }
 
       require('mini.operators').setup()
 
