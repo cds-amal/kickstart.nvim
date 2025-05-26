@@ -15,6 +15,7 @@ return {
     input = { enabled = true },
     notify = { enabled = true },
     rename = { enabled = true },
+    words = { enabled = true },
   },
   keys = {
     {
