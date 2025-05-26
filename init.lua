@@ -904,6 +904,8 @@ require('lazy').setup({
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup()
 
+      require('mini.operators').setup()
+
       require('mini.files').setup {
         -- Customization options here
         windows = {
