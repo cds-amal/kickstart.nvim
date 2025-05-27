@@ -932,7 +932,7 @@ require('lazy').setup({
             local ft = vim.bo.filetype
 
             -- For Cue files, use the appropriate comment string
-            if ft == 'cue' then
+            if ft == 'cue' or ft == 'hcl' then
               return '// %s'
             end
 
