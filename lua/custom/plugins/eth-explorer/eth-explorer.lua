@@ -148,20 +148,20 @@ function M.ethereum_gx()
 
   if url then
     vim.notify('Opening: ' .. url)
-    
+
     -- Determine OS and use appropriate command
     local open_cmd
-    if vim.fn.has('mac') == 1 or vim.fn.has('osx') == 1 then
+    if vim.fn.has 'mac' == 1 or vim.fn.has 'osx' == 1 then
       open_cmd = string.format("open '%s'", url)
-    elseif vim.fn.has('unix') == 1 then
+    elseif vim.fn.has 'unix' == 1 then
       open_cmd = string.format("xdg-open '%s' 2>/dev/null", url)
-    elseif vim.fn.has('win32') == 1 or vim.fn.has('win64') == 1 then
+    elseif vim.fn.has 'win32' == 1 or vim.fn.has 'win64' == 1 then
       open_cmd = string.format('start "" "%s"', url)
     else
       vim.notify('Unsupported OS for opening URLs', vim.log.levels.ERROR)
       return
     end
-    
+
     vim.fn.system(open_cmd)
   end
 end
@@ -171,7 +171,7 @@ function M.setup(opts)
   opts = opts or {}
 
   -- Override gx mapping
-  vim.keymap.set('n', 'gx', M.ethereum_gx, {
+  vim.keymap.set('n', 'go', M.ethereum_gx, {
     desc = 'Open Ethereum address/hash in explorer or default gx',
   })
 end
