@@ -50,6 +50,7 @@ vim.schedule(function()
     vim.o.clipboard = 'unnamedplus'
   end
 end)
+-- vim.g.clipboard = 'osc52'
 
 -- Enable break indent
 vim.opt.breakindent = true
