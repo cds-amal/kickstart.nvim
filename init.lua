@@ -917,6 +917,8 @@ require('lazy').setup({
 
       require('mini.operators').setup()
 
+      require('mini.jump').setup()
+
       require('mini.files').setup {
         -- Customization options here
         windows = {
