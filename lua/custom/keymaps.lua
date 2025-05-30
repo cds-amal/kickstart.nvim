@@ -38,23 +38,31 @@ local run_and_capture = function(command)
   return vim.fn.systemlist { 'sh', '-c', command }
 end
 
-vim.api.nvim_create_user_command('CastRunTransaction', function()
+vim.api.nvim_create_user_command('CastInspectTransaction', function()
   local word = vim.fn.expand '<cword>'
   local linenr = vim.fn.line '.'
 
   -- collect output
   local lines = {}
   table.insert(lines, '=====')
-  table.insert(lines, 'calldata:')
+  table.insert(lines, 'CALLDATA:')
 
   local calldata = run_and_capture('cast tx ' .. word .. ' --json --rpc-url http://localhost:8545 | jq -r .input')
   vim.list_extend(lines, calldata)
 
   table.insert(lines, '------------')
-  table.insert(lines, 'Run:')
+  table.insert(lines, '')
+  table.insert(lines, 'RUN:')
 
   local trace = run_and_capture('cast run ' .. word .. ' -vvvvv --rpc-url http://localhost:8545')
   vim.list_extend(lines, trace)
+
+  table.insert(lines, '------------')
+  table.insert(lines, '')
+  table.insert(lines, 'RECEIPTS:')
+
+  local receipt = run_and_capture('cast receipt ' .. word .. ' --json --rpc-url http://localhost:8545 | yq -P eval')
+  vim.list_extend(lines, receipt)
 
   table.insert(lines, '=====')
 
@@ -62,5 +70,5 @@ vim.api.nvim_create_user_command('CastRunTransaction', function()
   vim.api.nvim_buf_set_lines(0, linenr, linenr, false, lines)
 end, {})
 
-vim.keymap.set('n', '<leader>lt', '<cmd>CastRunTransaction<CR>', { desc = '[L]ookup [T]ransaction' })
+vim.keymap.set('n', '<leader>it', '<cmd>CastInspectTransaction<CR>', { desc = '[I]nspect [T]ransaction' })
 vim.keymap.set('n', '<leader>cb', clean_buffer, { desc = '[C]lean [Buffer]' })
