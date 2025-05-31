@@ -1,3 +1,5 @@
+-- selene: allow(mixed_table)
+
 return {
   'greggh/claude-code.nvim',
   dependencies = {

@@ -1,3 +1,5 @@
+-- selene: allow(mixed_table)
+
 return {
   'cds-io/jq-treesitter.nvim',
   ft = { 'json', 'yaml' },

@@ -1,3 +1,5 @@
+-- selene: allow(mixed_table)
+
 return {
   'olimorris/codecompanion.nvim',
   opts = {},

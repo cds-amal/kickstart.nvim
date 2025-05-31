@@ -1,3 +1,5 @@
+-- selene: allow(mixed_table)
+
 return {
   'zhisme/copy_with_context.nvim',
   config = function()

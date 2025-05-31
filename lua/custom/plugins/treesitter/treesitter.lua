@@ -1,3 +1,4 @@
+-- selene:allow(mixed_table)
 return {
   dependencies = {
     { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },

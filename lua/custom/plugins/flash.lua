@@ -1,3 +1,5 @@
+-- selene: allow(mixed_table)
+
 return {
   'folke/flash.nvim',
   event = 'VeryLazy',

@@ -1,3 +1,5 @@
+-- selene: allow(mixed_table)
+
 return {
   'MagicDuck/grug-far.nvim',
   config = function()

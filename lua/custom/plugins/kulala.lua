@@ -1,3 +1,5 @@
+-- selene: allow(mixed_table)
+
 return {
   'mistweaverco/kulala.nvim',
   keys = {
@@ -7,6 +9,7 @@ return {
         require('kulala').run()
       end,
       desc = '[R]equest [S]end request',
+      mode = 'n',
     },
     {
       '<leader>Ra',
@@ -14,6 +17,7 @@ return {
         require('kulala').run_all()
       end,
       desc = 'Send all requests',
+      mode = 'n',
     },
     {
       '<leader>Rb',
@@ -21,6 +25,7 @@ return {
         require('kulala').scratchpad()
       end,
       desc = 'Open scratchpad',
+      mode = 'n',
     },
     {
       '<leader>Rr',
@@ -28,6 +33,7 @@ return {
         require('kulala').replay()
       end,
       desc = 'Replay last request',
+      mode = 'n',
     },
     {
       '<leader>Rt',
@@ -35,6 +41,7 @@ return {
         require('kulala').toggle_view()
       end,
       desc = 'Toggle headers/body',
+      mode = 'n',
     },
   },
   ft = { 'http', 'rest' },

@@ -1,3 +1,5 @@
+-- selene: allow(mixed_table)
+
 return {
   'eth-helper',
   dir = vim.fn.expand '~/dev/nvim-plugins/eth-helper/',

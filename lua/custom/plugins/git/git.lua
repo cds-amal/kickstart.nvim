@@ -1,3 +1,4 @@
+-- selene:allow(mixed_table)
 local M = {}
 
 -- Define your plugins with named keys for organization

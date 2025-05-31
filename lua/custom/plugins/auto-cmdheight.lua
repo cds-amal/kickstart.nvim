@@ -1,3 +1,5 @@
+-- selene: allow(mixed_table)
+
 return {
   'jake-stewart/auto-cmdheight.nvim',
   lazy = false,

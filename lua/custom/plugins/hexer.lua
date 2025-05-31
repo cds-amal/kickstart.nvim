@@ -1,3 +1,5 @@
+-- selene: allow(mixed_table)
+
 return {
   -- 'cds-amal/hexer-nvim',
   dir = '~/dev/nvim-plugins/hexer-nvim',
