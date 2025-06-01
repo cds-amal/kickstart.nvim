@@ -10,6 +10,7 @@ return {
       -- Setup all modules with their defaults
       address = {
         -- Address label configuration (from eth-helper)
+        color_mode = 'address',
         addresses = {},
       },
       cast = {
