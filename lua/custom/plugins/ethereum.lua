@@ -12,6 +12,7 @@ return {
         -- Address label configuration (from eth-helper)
         color_mode = 'address',
         addresses = {},
+        scan_on = { '.eoa-mappings.yml' },
       },
       cast = {
         -- Cast command configuration
