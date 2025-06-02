@@ -452,6 +452,7 @@ require('lazy').setup({
       { 'williamboman/mason.nvim', opts = {} },
       'williamboman/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
+      'b0o/schemastore.nvim',
 
       -- Useful status updates for LSP.
       { 'j-hui/fidget.nvim', opts = {} },
@@ -522,7 +523,7 @@ require('lazy').setup({
           --  To jump back, press <C-t>.
           map('grd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
 
-          -- WARN: This is not Goto Definition, this is Goto Declaration.
+          -- WARN: This is not Goto Definition, this is Goto Declaration.init
           --  For example, in C this would take you to the header.
           map('grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
 
@@ -669,6 +670,14 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
         --
+        jsonls = {
+          settings = {
+            json = {
+              schemas = require('schemastore').json.schemas(), -- optional
+              validate = { enable = true },
+            },
+          },
+        },
 
         lua_ls = {
           -- cmd = { ... },
