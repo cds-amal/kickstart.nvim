@@ -34,22 +34,21 @@ vim.opt.showmode = false
 --  See `:help 'clipboard'`
 vim.schedule(function()
   if vim.env.SSH_CONNECTION then
+    local function copy(lines, _)
+      require('vim.ui.clipboard.osc52').copy '+'(lines)
+    end
+
+    local function paste()
+      return require('vim.ui.clipboard.osc52').paste '+'()
+    end
     -- Enable OSC52 clipboard integration
     vim.g.clipboard = {
       name = 'OSC52',
-      copy = {
-        ['+'] = require('vim.ui.clipboard.osc52').copy '+',
-        ['*'] = require('vim.ui.clipboard.osc52').copy '*',
-      },
-      paste = {
-        ['+'] = require('vim.ui.clipboard.osc52').paste '+',
-        ['*'] = require('vim.ui.clipboard.osc52').paste '*',
-      },
+      copy = { ['+'] = copy, ['*'] = copy },
+      paste = { ['+'] = paste, ['*'] = paste },
     }
-  else
-    -- Use the default clipboard provider for local editing
-    vim.o.clipboard = 'unnamedplus'
   end
+  vim.opt.clipboard = 'unnamedplus'
 end)
 -- vim.g.clipboard = 'osc52'
 
