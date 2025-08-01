@@ -33,21 +33,6 @@ vim.opt.showmode = false
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
 vim.schedule(function()
-  if vim.env.SSH_CONNECTION then
-    local function copy(lines, _)
-      require('vim.ui.clipboard.osc52').copy '+'(lines)
-    end
-
-    local function paste()
-      return require('vim.ui.clipboard.osc52').paste '+'()
-    end
-    -- Enable OSC52 clipboard integration
-    vim.g.clipboard = {
-      name = 'OSC52',
-      copy = { ['+'] = copy, ['*'] = copy },
-      paste = { ['+'] = paste, ['*'] = paste },
-    }
-  end
   vim.opt.clipboard = 'unnamedplus'
 end)
 -- vim.g.clipboard = 'osc52'
