@@ -33,7 +33,8 @@ vim.opt.showmode = false
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
 vim.schedule(function()
-  vim.opt.clipboard = 'unnamedplus'
+  -- Smart clipboard that works both locally and over SSH
+  require('custom.smart-clipboard').setup()
 end)
 -- vim.g.clipboard = 'osc52'
 
