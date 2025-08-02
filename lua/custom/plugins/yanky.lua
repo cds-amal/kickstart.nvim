@@ -1,6 +1,5 @@
 return {
   'gbprod/yanky.nvim',
-  enabled = false, -- TEMPORARILY DISABLED FOR TESTING
   opts = {},
   keys = {
     { 'p', '<Plug>(YankyPutAfter)', mode = { 'n', 'x' } },
