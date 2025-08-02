@@ -2,15 +2,6 @@
 local M = {}
 
 function M.setup()
-  -- Try Zellij-specific hack first if applicable
-  if vim.env.SSH_CONNECTION and vim.env.ZELLIJ then
-    local hack = require('custom.zellij-clipboard-hack')
-    if hack.setup() then
-      vim.notify('Using Zellij clipboard hack', vim.log.levels.INFO)
-      return
-    end
-  end
-  
   -- Check if we're in an SSH session
   if vim.env.SSH_CONNECTION then
     -- OSC52 clipboard for SSH sessions
