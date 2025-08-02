@@ -2,43 +2,42 @@
 local M = {}
 
 function M.setup()
+  -- Try Zellij-specific hack first if applicable
+  if vim.env.SSH_CONNECTION and vim.env.ZELLIJ then
+    local hack = require('custom.zellij-clipboard-hack')
+    if hack.setup() then
+      vim.notify('Using Zellij clipboard hack', vim.log.levels.INFO)
+      return
+    end
+  end
+  
   -- Check if we're in an SSH session
   if vim.env.SSH_CONNECTION then
     -- OSC52 clipboard for SSH sessions
     local function osc52_copy(lines)
       local text = table.concat(lines, '\n')
       local base64 = vim.base64.encode(text)
-      local osc52 = string.format('\027]52;c;%s\007', base64)
+      
+      -- Use different OSC52 format depending on environment
+      local osc52
+      if vim.env.ZELLIJ then
+        -- Zellij uses ESC\ terminator, not BEL
+        osc52 = string.format('\027]52;c;%s\027\\', base64)
+      else
+        -- Standard OSC52 with BEL terminator
+        osc52 = string.format('\027]52;c;%s\007', base64)
+      end
       
       -- Handle tmux wrapping if needed
       if vim.env.TMUX then
         osc52 = string.format('\027Ptmux;\027%s\027\\', osc52)
       end
       
-      -- Special handling for Zellij over SSH
-      if vim.env.ZELLIJ then
-        -- Zellij can interfere with escape sequences
-        -- Use a more robust method that ensures raw bytes get through
-        local tmpfile = os.tmpname()
-        local f = io.open(tmpfile, 'wb')
-        if f then
-          f:write(osc52)
-          f:close()
-          -- Use cat to write raw bytes to stderr
-          os.execute('cat ' .. tmpfile .. ' >&2')
-          os.remove(tmpfile)
-        else
-          -- Fallback to direct write
-          io.stderr:write(osc52)
-          io.stderr:flush()
-        end
-      else
-        -- Standard SSH without Zellij
-        pcall(function()
-          io.stderr:write(osc52)
-          io.stderr:flush()
-        end)
-      end
+      -- Write OSC52 sequence to stderr
+      pcall(function()
+        io.stderr:write(osc52)
+        io.stderr:flush()
+      end)
     end
     
     vim.g.clipboard = {
