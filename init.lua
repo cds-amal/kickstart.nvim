@@ -35,6 +35,11 @@ vim.opt.showmode = false
 vim.schedule(function()
   -- Smart clipboard that works both locally and over SSH
   require('custom.smart-clipboard').setup()
+  
+  -- Zellij-specific helpers when OSC52 forwarding doesn't work
+  if vim.env.ZELLIJ then
+    require('custom.zellij-helpers').setup()
+  end
 end)
 -- vim.g.clipboard = 'osc52'
 

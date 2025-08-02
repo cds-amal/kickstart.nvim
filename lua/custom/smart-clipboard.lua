@@ -46,9 +46,12 @@ function M.setup()
     vim.defer_fn(function()
       local msg = 'OSC52 clipboard enabled for SSH'
       if vim.env.ZELLIJ then
-        msg = msg .. ' (inside Zellij)'
+        msg = msg .. ' (inside Zellij - may not work due to forwarding issues)'
+        vim.notify(msg, vim.log.levels.WARN)
+        vim.notify('Alternative: Use Ctrl+Shift+Space for Zellij copy mode', vim.log.levels.INFO)
+      else
+        vim.notify(msg, vim.log.levels.INFO)
       end
-      vim.notify(msg, vim.log.levels.INFO)
     end, 100)
   end
   
