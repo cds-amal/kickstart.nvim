@@ -2,6 +2,20 @@
 local M = {}
 
 function M.setup()
+  -- Skip if ojroques/nvim-osc52 plugin will handle clipboard
+  -- The plugin is loaded after this, so we check if it's in the plugin list
+  local has_osc52_plugin = false
+  local ok, lazy = pcall(require, 'lazy.core.config')
+  if ok and lazy.plugins and lazy.plugins['nvim-osc52'] then
+    has_osc52_plugin = true
+  end
+  
+  if vim.env.SSH_CONNECTION and has_osc52_plugin then
+    -- Let ojroques/nvim-osc52 handle clipboard
+    vim.opt.clipboard = 'unnamedplus'
+    return
+  end
+  
   -- Check if we're in an SSH session
   if vim.env.SSH_CONNECTION then
     -- OSC52 clipboard for SSH sessions
