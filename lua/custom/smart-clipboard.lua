@@ -15,11 +15,30 @@ function M.setup()
         osc52 = string.format('\027Ptmux;\027%s\027\\', osc52)
       end
       
-      -- Write to stderr (most reliable for SSH)
-      pcall(function()
-        io.stderr:write(osc52)
-        io.stderr:flush()
-      end)
+      -- Special handling for Zellij over SSH
+      if vim.env.ZELLIJ then
+        -- Zellij can interfere with escape sequences
+        -- Use a more robust method that ensures raw bytes get through
+        local tmpfile = os.tmpname()
+        local f = io.open(tmpfile, 'wb')
+        if f then
+          f:write(osc52)
+          f:close()
+          -- Use cat to write raw bytes to stderr
+          os.execute('cat ' .. tmpfile .. ' >&2')
+          os.remove(tmpfile)
+        else
+          -- Fallback to direct write
+          io.stderr:write(osc52)
+          io.stderr:flush()
+        end
+      else
+        -- Standard SSH without Zellij
+        pcall(function()
+          io.stderr:write(osc52)
+          io.stderr:flush()
+        end)
+      end
     end
     
     vim.g.clipboard = {
@@ -35,7 +54,11 @@ function M.setup()
     }
     
     vim.defer_fn(function()
-      vim.notify('OSC52 clipboard enabled for SSH', vim.log.levels.INFO)
+      local msg = 'OSC52 clipboard enabled for SSH'
+      if vim.env.ZELLIJ then
+        msg = msg .. ' (inside Zellij)'
+      end
+      vim.notify(msg, vim.log.levels.INFO)
     end, 100)
   end
   
