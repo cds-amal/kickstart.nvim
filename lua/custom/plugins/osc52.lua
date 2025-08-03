@@ -42,10 +42,10 @@ return {
         },
       }
       
-      -- Optional: Visual mode mapping for explicit copy
-      vim.keymap.set('v', '<leader>c', function()
-        osc52.copy_visual()
-      end, { desc = 'Copy selection to clipboard using OSC52' })
+      -- Manual mappings as fallback (from plugin documentation)
+      vim.keymap.set('n', '<leader>c', require('osc52').copy_operator, {expr = true, desc = 'OSC52 copy operator'})
+      vim.keymap.set('n', '<leader>cc', '<leader>c_', {remap = true, desc = 'OSC52 copy current line'})
+      vim.keymap.set('v', '<leader>c', require('osc52').copy_visual, { desc = 'OSC52 copy selection' })
       
       vim.notify('OSC52 clipboard enabled (ojroques/nvim-osc52)', vim.log.levels.INFO)
     end
