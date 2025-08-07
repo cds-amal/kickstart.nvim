@@ -501,6 +501,24 @@ require('lazy').setup({
           -- or a suggestion from your LSP for this to activate.
           map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
 
+          -- Debug helper: Check if code actions are available
+          map('<leader>da', function()
+            local params = vim.lsp.util.make_range_params()
+            params.context = {
+              diagnostics = vim.lsp.diagnostic.get_line_diagnostics(),
+              only = nil,
+            }
+            vim.lsp.buf_request(0, 'textDocument/codeAction', params, function(err, result, ctx, config)
+              if err then
+                vim.notify('Code action error: ' .. vim.inspect(err), vim.log.levels.ERROR)
+              elseif not result or vim.tbl_isempty(result) then
+                vim.notify('No code actions available', vim.log.levels.INFO)
+              else
+                vim.notify('Found ' .. #result .. ' code actions:\n' .. vim.inspect(result), vim.log.levels.INFO)
+              end
+            end)
+          end, '[D]ebug Code [A]ctions')
+
           -- Find references for the word under your cursor.
           map('grr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
 
@@ -649,7 +667,44 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         -- clangd = {},
-        gopls = {},
+        gopls = {
+          settings = {
+            gopls = {
+              gofumpt = true,
+              codelenses = {
+                gc_details = false,
+                generate = true,
+                regenerate_cgo = true,
+                run_govulncheck = true,
+                test = true,
+                tidy = true,
+                upgrade_dependency = true,
+                vendor = true,
+              },
+              hints = {
+                assignVariableTypes = true,
+                compositeLiteralFields = true,
+                compositeLiteralTypes = true,
+                constantValues = true,
+                functionTypeParameters = true,
+                parameterNames = true,
+                rangeVariableTypes = true,
+              },
+              analyses = {
+                fieldalignment = true,
+                nilness = true,
+                unusedparams = true,
+                unusedwrite = true,
+                useany = true,
+              },
+              usePlaceholders = true,
+              completeUnimported = true,
+              staticcheck = true,
+              directoryFilters = { '-.git', '-.vscode', '-.idea', '-.vscode-test', '-node_modules' },
+              semanticTokens = true,
+            },
+          },
+        },
         -- pyright = {},
         rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs

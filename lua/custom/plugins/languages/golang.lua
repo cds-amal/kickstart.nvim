@@ -9,7 +9,20 @@ M.go = {
     'nvim-treesitter/nvim-treesitter',
   },
   config = function()
-    require('go').setup()
+    require('go').setup({
+      -- Disable go.nvim's LSP setup to avoid conflicts with native gopls
+      lsp_cfg = false,
+      -- Enable other useful features
+      lsp_gofumpt = true,
+      dap_debug = true,
+      -- Use native code actions from gopls
+      lsp_codelens = true,
+      diagnostic = {
+        hdlr = false, -- Use native diagnostics
+      },
+      -- Keymaps
+      lsp_keymaps = false, -- Don't override LSP keymaps
+    })
   end,
   event = { 'CmdlineEnter' },
   ft = { 'go', 'gomod' },
