@@ -33,3 +33,21 @@ local function clean_buffer()
     vim.cmd(cmd)
   end
 end
+
+-- Lint keymaps
+vim.keymap.set('n', '<leader>ll', function()
+  require('lint').try_lint()
+end, { desc = '[L]int current buffer' })
+
+-- Tdo (todo) keymaps for markdown files in ~/NOTES
+vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter' }, {
+  pattern = { '*/NOTES/*.md', '*/NOTES/*.markdown' },
+  callback = function()
+    vim.keymap.set('n', '<Space>', ':Tdo toggle<CR>', {
+      buffer = true,
+      desc = 'Toggle todo state',
+      silent = true,
+    })
+  end,
+  desc = 'Set spacebar to toggle todos in NOTES markdown files',
+})

@@ -5,7 +5,7 @@ return {
     'nvim-telescope/telescope.nvim', -- Optional but recommended
     'tpope/vim-repeat', -- For dot-repeat support
   },
-  lazy = true,
+  lazy = false,
   config = function()
     -- Restore LSP keymaps for Rust files after Ethereum plugin loads
     vim.api.nvim_create_autocmd('FileType', {

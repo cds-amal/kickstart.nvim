@@ -3,7 +3,13 @@ return {
   version = '*', -- Only update on tagged releases
   dependencies = {
     'MunifTanjim/nui.nvim',
-    'MeanderingProgrammer/render-markdown.nvim',
+    {
+      'MeanderingProgrammer/render-markdown.nvim',
+      opts = {
+        -- Disable concealment
+        render_modes = {},
+      },
+    },
   },
   opts = {
     -- OPTIONAL: Location of user defined tips (default value shown below)
@@ -14,7 +20,7 @@ return {
     warn_on_conflicts = true,
     -- OPTIONAL: Daily tip mode (default: 1)
     -- 0 = off, 1 = once per day, 2 = every startup
-    daily_tip = 2,
+    daily_tip = 1,
   },
   init = function()
     -- OPTIONAL: Change to your liking or drop completely

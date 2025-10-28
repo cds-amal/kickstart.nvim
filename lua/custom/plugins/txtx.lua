@@ -1,5 +1,5 @@
 return {
-  dir = '/Users/amal/dev/tx/txtx/vscode-extension/nvim-txtx',
+  dir = '/Users/amal/dev/tx/nvim',
   dependencies = {
     {
       'nvimdev/lspsaga.nvim',

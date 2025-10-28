@@ -88,7 +88,16 @@ vim.o.confirm = true
 vim.o.cursorline = true
 vim.o.cursorcolumn = true
 
-vim.o.conceallevel = 2
+vim.o.conceallevel = 0
+
+-- Disable concealment for specific filetypes
+-- Use BufEnter to run after plugins have loaded and set their own conceallevel
+vim.api.nvim_create_autocmd({'FileType', 'BufEnter', 'BufWinEnter'}, {
+  pattern = {'*.md', 'markdown', 'json'},
+  callback = function()
+    vim.opt_local.conceallevel = 0
+  end,
+})
 
 -- Use spaces by default
 vim.o.expandtab = true
@@ -669,6 +678,8 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
+        bashls = {},
+        marksman = {},
         -- clangd = {},
         gopls = {
           settings = {
@@ -800,7 +811,7 @@ require('lazy').setup({
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
+        local disable_filetypes = { c = true, cpp = true, rust = true }
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
@@ -927,6 +938,7 @@ require('lazy').setup({
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
     'folke/tokyonight.nvim',
     priority = 1000, -- Make sure to load this before all the other start plugins.
+    dependencies = 'p00f/alabaster.nvim',
     config = function()
       ---@diagnostic disable-next-line: missing-fields
       require('tokyonight').setup {
@@ -1127,6 +1139,14 @@ require 'custom.keymaps'
 require 'custom.close-unnamed'
 require 'custom.strip-whitespaces'
 require 'custom.virtual-copy'
+
+vim.keymap.set('n', '<leader>DD', function()
+  vim.diagnostic.open_float(nil, {
+    focus = true,
+    scope = 'line',
+    border = 'rounded',
+  })
+end, { desc = '[D]iagnostic [D]etail (focusable)' })
 
 _G.dd = function(...)
   require('snacks').debug.inspect(...)

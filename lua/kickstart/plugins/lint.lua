@@ -6,6 +6,9 @@ return {
     config = function()
       local lint = require 'lint'
       lint.linters_by_ft = {
+        sh = { 'shellcheck' },
+        bash = { 'shellcheck' },
+        zsh = { 'shellcheck' },
         -- markdown = { 'markdownlint' },
       }
 
