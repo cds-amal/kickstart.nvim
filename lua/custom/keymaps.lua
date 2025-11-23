@@ -1,3 +1,19 @@
+-- Function to open URLs in Firefox
+local function open_url()
+  local url = vim.fn.expand('<cfile>')
+
+  -- Check if the URL starts with http:// or https://
+  if url:match('^https?://') then
+    vim.fn.jobstart({ 'firefox', url }, { detach = true })
+    vim.notify('Opening URL in Firefox: ' .. url)
+  else
+    vim.notify('No valid URL under cursor', vim.log.levels.WARN)
+  end
+end
+
+-- Map gx to open URLs in Firefox
+vim.keymap.set('n', 'gx', open_url, { desc = 'Open URL in Firefox' })
+
 local function clean_buffer()
   local cmds = {
     -- Add a line break after 'Chain sepolia'

@@ -1,6 +1,6 @@
 return {
   'ethereum.nvim',
-  lazy = true,
+  ft = { 'solidity', 'json', 'yaml', 'log', 'markdown' }, -- Load for these filetypes
 
   dir = '~/dev/nvim-plugins/ethereum.nvim',
   dependencies = {
@@ -29,6 +29,10 @@ return {
       scratch = {
         window_type = 'vsplit',
         auto_scroll = true,
+      },
+      etherscan = {
+        default_network = 'mainnet',
+        browser = 'firefox',
       },
     }
   end,

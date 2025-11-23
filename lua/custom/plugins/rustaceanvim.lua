@@ -50,7 +50,8 @@ return {
               loadOutDirsFromCheck = true,
               runBuildScripts = true,
             },
-            checkOnSave = {
+            checkOnSave = true,
+            check = {
               allFeatures = true,
               command = 'clippy',
               extraArgs = { '--no-deps' },
@@ -74,7 +75,7 @@ return {
                 enable = false,
               },
               chainingHints = {
-                enable = true,
+                enable = false,  -- Reduced noise
               },
               closingBraceHints = {
                 enable = true,
@@ -89,14 +90,14 @@ return {
               },
               maxLength = 25,
               parameterHints = {
-                enable = true,
+                enable = false,  -- Reduced noise
               },
               reborrowHints = {
                 enable = 'never',
               },
               renderColons = true,
               typeHints = {
-                enable = true,
+                enable = false,  -- Reduced noise - toggle with <leader>th
                 hideClosureInitialization = false,
                 hideNamedConstructor = false,
               },
