@@ -9,7 +9,7 @@
 ]]
 --
 
-print 'Git co-authors plugin loaded!'
+-- print 'Git co-authors plugin loaded!'
 
 vim.api.nvim_create_autocmd('BufReadPost', {
   pattern = 'COMMIT_EDITMSG',

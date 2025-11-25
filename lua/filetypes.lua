@@ -1,6 +1,6 @@
 vim.filetype.add {
   extension = {
-    tx = 'hcl', -- *.tx files get 'hcl' filetype
+    tx = 'txtx', -- *.tx files get 'txtx' filetype
     txtx = 'txtx', -- *.txtx files get 'txtx' filetype
   },
   -- filename = {

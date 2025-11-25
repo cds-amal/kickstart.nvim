@@ -1,6 +1,6 @@
 return {
-  'bngarren/checkmate.nvim',
   enabled = false,
+  'bngarren/checkmate.nvim',
   ft = 'markdown',
   opts = {
     files = { 'todo', 'TODO', '*.todo*', 'notes.md' }, -- matches TODO, TODO.md, .todo.md

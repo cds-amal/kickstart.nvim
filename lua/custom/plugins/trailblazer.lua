@@ -1,4 +1,5 @@
 return {
+  enabled = false,
   'LeonHeidelbach/trailblazer.nvim',
   config = function()
     require('trailblazer').setup {

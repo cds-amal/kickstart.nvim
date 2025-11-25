@@ -34,20 +34,23 @@ local function clean_buffer()
   end
 end
 
--- Lint keymaps
-vim.keymap.set('n', '<leader>ll', function()
-  require('lint').try_lint()
-end, { desc = '[L]int current buffer' })
+-- Function to open URLs in default browser
+local function open_url()
+  local url = vim.fn.expand('<cfile>')
 
--- Tdo (todo) keymaps for markdown files in ~/NOTES
-vim.api.nvim_create_autocmd({ 'BufEnter', 'BufWinEnter' }, {
-  pattern = { '*/NOTES/*.md', '*/NOTES/*.markdown' },
-  callback = function()
-    vim.keymap.set('n', '<Space>', ':Tdo toggle<CR>', {
-      buffer = true,
-      desc = 'Toggle todo state',
-      silent = true,
-    })
-  end,
-  desc = 'Set spacebar to toggle todos in NOTES markdown files',
-})
+  -- Check if the URL starts with http:// or https://
+  if url:match('^https?://') then
+    vim.fn.jobstart({ 'open', url }, { detach = true })
+    vim.notify('Opening URL: ' .. url)
+  -- Check if it's a GitHub repo in format 'owner/repo'
+  elseif url:match('^[%w%-_%.]+/[%w%-_%.]+$') then
+    local github_url = 'https://github.com/' .. url
+    vim.fn.jobstart({ 'open', github_url }, { detach = true })
+    vim.notify('Opening GitHub repo: ' .. github_url)
+  else
+    vim.notify('No valid URL or GitHub repo under cursor', vim.log.levels.WARN)
+  end
+end
+
+-- Map gx to open URLs in default browser
+vim.keymap.set('n', 'gx', open_url, { desc = 'Open URL in browser' })

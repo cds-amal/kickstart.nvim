@@ -1,32 +1,13 @@
 return {
   'ethereum.nvim',
+  ft = { 'solidity', 'json', 'yaml', 'log', 'markdown' }, -- Load for these filetypes
+
   dir = '~/dev/nvim-plugins/ethereum.nvim',
   dependencies = {
     'nvim-telescope/telescope.nvim', -- Optional but recommended
     'tpope/vim-repeat', -- For dot-repeat support
   },
-  lazy = false,
   config = function()
-    -- Restore LSP keymaps for Rust files after Ethereum plugin loads
-    vim.api.nvim_create_autocmd('FileType', {
-      pattern = 'rust',
-      callback = function()
-        -- Restore LSP keymaps for Rust files
-        vim.schedule(function()
-          local bufnr = vim.api.nvim_get_current_buf()
-          local opts = { buffer = bufnr, silent = true }
-
-          -- Restore the LSP navigation keymaps
-          vim.keymap.set('n', 'grd', require('telescope.builtin').lsp_definitions, vim.tbl_extend('force', opts, { desc = '[G]oto [D]efinition' }))
-          vim.keymap.set('n', 'grr', require('telescope.builtin').lsp_references, vim.tbl_extend('force', opts, { desc = '[G]oto [R]eferences' }))
-          vim.keymap.set('n', 'gri', require('telescope.builtin').lsp_implementations, vim.tbl_extend('force', opts, { desc = '[G]oto [I]mplementation' }))
-          vim.keymap.set('n', 'grt', require('telescope.builtin').lsp_type_definitions, vim.tbl_extend('force', opts, { desc = '[G]oto [T]ype Definition' }))
-          vim.keymap.set('n', 'grD', vim.lsp.buf.declaration, vim.tbl_extend('force', opts, { desc = '[G]oto [D]eclaration' }))
-          vim.keymap.set('n', 'gra', vim.lsp.buf.code_action, vim.tbl_extend('force', opts, { desc = '[G]oto Code [A]ction' }))
-        end)
-      end,
-    })
-
     require('ethereum').setup {
       -- Setup all modules with their defaults
       address = {
@@ -37,7 +18,8 @@ return {
       },
       cast = {
         -- Cast command configuration
-        output_mode = 'scratch', -- Replaces use_scratch_pad (options: 'scratch', 'buffer', 'float')
+        use_scratch_pad = true, -- Default
+        scratch_window_type = 'vsplit', -- Default
         rpc_url = 'http://localhost:8545',
       },
       calldata = {
@@ -47,6 +29,10 @@ return {
       scratch = {
         window_type = 'vsplit',
         auto_scroll = true,
+      },
+      etherscan = {
+        default_network = 'mainnet',
+        browser = 'Google Chrome',
       },
     }
   end,

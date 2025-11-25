@@ -46,10 +46,10 @@ return {
         -- vim.keymap.set('n', ',q', function()
         --   vim.diagnostic.setloclist { open = true }
         -- end, { desc = 'Open buffer diagnostics location list' })
+
+        vim.keymap.set('n', 'gd', '<cmd>Lspsaga finder def<CR>', opts)
       end,
     }
-
-    vim.keymap.set('n', 'gd', '<cmd>Lspsaga finder def<CR>')
     -- Setup commands
     require('txtx.commands').setup()
   end,

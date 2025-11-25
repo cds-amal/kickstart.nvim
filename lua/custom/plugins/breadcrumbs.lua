@@ -109,6 +109,21 @@ local function breadcrumbs_set()
     return
   end
 
+  -- Check if any LSP client supports documentSymbol
+  local clients = vim.lsp.get_clients({ bufnr = bufnr })
+  local has_document_symbol = false
+  for _, client in ipairs(clients) do
+    if client.server_capabilities.documentSymbolProvider then
+      has_document_symbol = true
+      break
+    end
+  end
+
+  if not has_document_symbol then
+    -- No LSP client supports document symbols, silently skip
+    return
+  end
+
   local params = {
     textDocument = {
       uri = uri

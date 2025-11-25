@@ -8,7 +8,7 @@
 -- Set <comma> as the leader key
 -- See `:help mapleader`
 vim.g.mapleader = ','
-vim.g.maplocalleader = ','
+vim.g.maplocalleader = '\\'
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
 vim.g.have_nerd_font = false
@@ -19,8 +19,8 @@ vim.g.have_nerd_font = false
 --  For more options, you can see `:help option-list`
 
 -- Make line numbers default
-vim.opt.number = true
-vim.opt.relativenumber = true
+vim.o.number = true
+vim.o.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
@@ -33,7 +33,7 @@ vim.o.showmode = false
 --  Remove this option if you want your OS clipboard to remain independent.
 --  See `:help 'clipboard'`
 vim.schedule(function()
-  vim.o.clipboard = 'unnamedplus'
+  -- vim.o.clipboard = 'unnamedplus'
   -- Smart clipboard that works both locally and over SSH
   require('custom.smart-clipboard').setup()
 end)
@@ -41,7 +41,6 @@ end)
 -- Enable break indent
 vim.o.breakindent = true
 
--- Save undo history
 vim.o.undofile = true
 
 -- Case-insensitive searching UNLESS \C or one or more capital letters in the search term
@@ -88,16 +87,7 @@ vim.o.confirm = true
 vim.o.cursorline = true
 vim.o.cursorcolumn = true
 
-vim.o.conceallevel = 0
-
--- Disable concealment for specific filetypes
--- Use BufEnter to run after plugins have loaded and set their own conceallevel
-vim.api.nvim_create_autocmd({'FileType', 'BufEnter', 'BufWinEnter'}, {
-  pattern = {'*.md', 'markdown', 'json'},
-  callback = function()
-    vim.opt_local.conceallevel = 0
-  end,
-})
+vim.o.conceallevel = 2
 
 -- Use spaces by default
 vim.o.expandtab = true
@@ -507,29 +497,11 @@ require('lazy').setup({
 
           -- Rename the variable under your cursor.
           --  Most Language Servers support renaming across files, etc.
-          map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
+          map('<leader>rn', vim.lsp.buf.rename, '[R]e[n]ame')
 
           -- Execute a code action, usually your cursor needs to be on top of an error
           -- or a suggestion from your LSP for this to activate.
           map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
-
-          -- Debug helper: Check if code actions are available
-          map('<leader>da', function()
-            local params = vim.lsp.util.make_range_params()
-            params.context = {
-              diagnostics = vim.lsp.diagnostic.get_line_diagnostics(),
-              only = nil,
-            }
-            vim.lsp.buf_request(0, 'textDocument/codeAction', params, function(err, result, ctx, config)
-              if err then
-                vim.notify('Code action error: ' .. vim.inspect(err), vim.log.levels.ERROR)
-              elseif not result or vim.tbl_isempty(result) then
-                vim.notify('No code actions available', vim.log.levels.INFO)
-              else
-                vim.notify('Found ' .. #result .. ' code actions:\n' .. vim.inspect(result), vim.log.levels.INFO)
-              end
-            end)
-          end, '[D]ebug Code [A]ctions')
 
           -- Find references for the word under your cursor.
           map('grr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
@@ -647,19 +619,7 @@ require('lazy').setup({
             [vim.diagnostic.severity.HINT] = '󰌶 ',
           },
         } or {},
-        virtual_text = {
-          source = 'if_many',
-          spacing = 2,
-          format = function(diagnostic)
-            local diagnostic_message = {
-              [vim.diagnostic.severity.ERROR] = diagnostic.message,
-              [vim.diagnostic.severity.WARN] = diagnostic.message,
-              [vim.diagnostic.severity.INFO] = diagnostic.message,
-              [vim.diagnostic.severity.HINT] = diagnostic.message,
-            }
-            return diagnostic_message[diagnostic.severity]
-          end,
-        },
+        virtual_text = false,  -- Disable inline messages - use Trouble or floating window instead
       }
 
       -- LSP servers and clients are able to communicate to each other what features they support.
@@ -678,49 +638,10 @@ require('lazy').setup({
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
-        bashls = {},
-        marksman = {},
         -- clangd = {},
-        gopls = {
-          settings = {
-            gopls = {
-              gofumpt = true,
-              codelenses = {
-                gc_details = false,
-                generate = true,
-                regenerate_cgo = true,
-                run_govulncheck = true,
-                test = true,
-                tidy = true,
-                upgrade_dependency = true,
-                vendor = true,
-              },
-              hints = {
-                assignVariableTypes = true,
-                compositeLiteralFields = true,
-                compositeLiteralTypes = true,
-                constantValues = true,
-                functionTypeParameters = true,
-                parameterNames = true,
-                rangeVariableTypes = true,
-              },
-              analyses = {
-                fieldalignment = true,
-                nilness = true,
-                unusedparams = true,
-                unusedwrite = true,
-                useany = true,
-              },
-              usePlaceholders = true,
-              completeUnimported = true,
-              staticcheck = true,
-              directoryFilters = { '-.git', '-.vscode', '-.idea', '-.vscode-test', '-node_modules' },
-              semanticTokens = true,
-            },
-          },
-        },
+        gopls = {},
         -- pyright = {},
-        rust_analyzer = {},
+        -- rust_analyzer is handled by rustaceanvim plugin
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -776,7 +697,10 @@ require('lazy').setup({
       require('mason-lspconfig').setup {
         ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
         automatic_installation = true,
-        automatic_enable = true,
+        automatic_enable = {
+          -- Exclude rust_analyzer - it's handled by rustaceanvim
+          exclude = { 'rust_analyzer' },
+        },
         handlers = {
           function(server_name)
             local server = servers[server_name] or {}
@@ -811,7 +735,7 @@ require('lazy').setup({
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true, rust = true }
+        local disable_filetypes = { c = true, cpp = true }
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
@@ -861,7 +785,13 @@ require('lazy').setup({
           --   end,
           -- },
         },
-        opts = {},
+        config = function()
+          local ls = require('luasnip')
+          -- Load custom Lua snippets after LuaSnip is initialized
+          vim.schedule(function()
+            require('luasnip.loaders.from_lua').lazy_load({ paths = '~/.config/nvim/lua/custom/snippets' })
+          end)
+        end,
       },
       'folke/lazydev.nvim',
     },
@@ -982,6 +912,9 @@ require('lazy').setup({
           ['c'] = {
             output = { left = '```console\n', right = '\n```' },
           },
+          ['r'] = {
+            output = { left = '```rust\n', right = '\n```' },
+          },
         },
       }
 
@@ -996,9 +929,12 @@ require('lazy').setup({
         },
         -- Other options...
       }
-      vim.keymap.set('n', '<leader>f', function()
-        require('mini.files').open()
-      end, { desc = 'Open mini.files explorer' })
+      vim.keymap.set('n', '\\]', function()
+        local minifiles = require('mini.files')
+        if not minifiles.close() then
+          minifiles.open()
+        end
+      end, { desc = 'Toggle mini.files explorer' })
 
       require('mini.comment').setup {
         options = {
@@ -1139,14 +1075,6 @@ require 'custom.keymaps'
 require 'custom.close-unnamed'
 require 'custom.strip-whitespaces'
 require 'custom.virtual-copy'
-
-vim.keymap.set('n', '<leader>DD', function()
-  vim.diagnostic.open_float(nil, {
-    focus = true,
-    scope = 'line',
-    border = 'rounded',
-  })
-end, { desc = '[D]iagnostic [D]etail (focusable)' })
 
 _G.dd = function(...)
   require('snacks').debug.inspect(...)

@@ -7,5 +7,7 @@ return {
   -- source
   dependencies = {
     'saghen/blink.cmp',
+    -- NOTE: nvim-treesitter removed from dependencies to ensure
+    -- markview loads BEFORE treesitter (prevents syntax highlighting conflicts)
   },
 }
