@@ -930,11 +930,60 @@ require('lazy').setup({
         -- Other options...
       }
       vim.keymap.set('n', '\\]', function()
-        local minifiles = require('mini.files')
+        local minifiles = require 'mini.files'
         if not minifiles.close() then
           minifiles.open()
         end
       end, { desc = 'Toggle mini.files explorer' })
+
+      -- Dynamic window sizing: focused window is larger, others shrink with distance
+      vim.api.nvim_create_autocmd('User', {
+        pattern = 'MiniFilesWindowUpdate',
+        callback = function(ev)
+          local MiniFiles = require 'mini.files'
+          local state = MiniFiles.get_explorer_state() or {}
+
+          local win_ids = vim.tbl_map(function(t)
+            return t.win_id
+          end, state.windows or {})
+
+          local function idx(win_id)
+            for i, id in ipairs(win_ids) do
+              if id == win_id then
+                return i
+              end
+            end
+          end
+
+          local this_win_idx = idx(ev.data.win_id)
+          local focused_win_idx = idx(vim.api.nvim_get_current_win())
+
+          if this_win_idx and focused_win_idx then
+            local idx_offset = this_win_idx - focused_win_idx
+            local widths = { 60, 20, 10 }
+
+            local i = math.abs(idx_offset) + 1
+            local win_config = vim.api.nvim_win_get_config(ev.data.win_id)
+            win_config.width = i <= #widths and widths[i] or widths[#widths]
+
+            local offset = 0
+            for j = 1, math.abs(idx_offset) do
+              local w = widths[j] or widths[#widths]
+              local _offset = 0.5 * (w + win_config.width) + 2
+              if idx_offset > 0 then
+                offset = offset + _offset
+              elseif idx_offset < 0 then
+                offset = offset - _offset
+              end
+            end
+
+            win_config.height = idx_offset == 0 and 25 or 20
+            win_config.row = math.floor(0.5 * (vim.o.lines - win_config.height))
+            win_config.col = math.floor(0.5 * (vim.o.columns - win_config.width) + offset)
+            vim.api.nvim_win_set_config(ev.data.win_id, win_config)
+          end
+        end,
+      })
 
       require('mini.comment').setup {
         options = {
