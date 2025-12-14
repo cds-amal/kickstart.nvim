@@ -41,10 +41,23 @@ return {
 
           -- Debug specific test under cursor
           map('<leader>rD', function() vim.cmd.RustLsp({ 'debuggables', bang = true }) end, 'Debug Test')
+
+          -- Toggle inlay hints
+          map('<leader>ri', function()
+            vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = bufnr }), { bufnr = bufnr })
+          end, 'Toggle Inlay Hints')
         end,
 
         settings = {
           ['rust-analyzer'] = {
+            completion = {
+              callable = {
+                snippets = 'fill_arguments',
+              },
+              postfix = {
+                enable = true,
+              },
+            },
             cargo = {
               allFeatures = true,
               loadOutDirsFromCheck = true,
@@ -75,14 +88,14 @@ return {
                 enable = false,
               },
               chainingHints = {
-                enable = false,  -- Reduced noise
+                enable = true,
               },
               closingBraceHints = {
                 enable = true,
                 minLines = 25,
               },
               closureReturnTypeHints = {
-                enable = 'never',
+                enable = 'with_block',
               },
               lifetimeElisionHints = {
                 enable = 'never',
@@ -90,14 +103,14 @@ return {
               },
               maxLength = 25,
               parameterHints = {
-                enable = false,  -- Reduced noise
+                enable = true,
               },
               reborrowHints = {
                 enable = 'never',
               },
               renderColons = true,
               typeHints = {
-                enable = false,  -- Reduced noise - toggle with <leader>th
+                enable = true,
                 hideClosureInitialization = false,
                 hideNamedConstructor = false,
               },
