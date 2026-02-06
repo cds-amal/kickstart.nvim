@@ -1,5 +1,5 @@
 return {
-  dir = '/Users/amal/dev/tx/nvim',
+  dir = '/Users/amal/oss/tx/nvim',
   dependencies = {
     {
       'nvimdev/lspsaga.nvim',

@@ -52,7 +52,7 @@ end
 -- LSP callback to process document symbols and build breadcrumbs
 local function lsp_callback(err, symbols, ctx, config)
   if err or not symbols then
-    vim.o.winbar = ""
+    vim.o.winbar = ''
     return
   end
 
@@ -61,22 +61,23 @@ local function lsp_callback(err, symbols, ctx, config)
   local cursor_char = pos[2]
 
   local file_path = vim.fn.bufname(ctx.bufnr)
-  if not file_path or file_path == "" then
-    vim.o.winbar = "[No Name]"
+  if not file_path or file_path == '' then
+    vim.o.winbar = '[No Name]'
     return
   end
 
   local relative_path
 
-  local clients = vim.lsp.get_clients({ bufnr = ctx.bufnr })
+  local clients = vim.lsp.get_clients { bufnr = ctx.bufnr }
 
   if #clients > 0 and clients[1].root_dir then
     local root_dir = clients[1].root_dir
-    if root_dir == nil then
-      relative_path = ""
+    relative_path = vim.fs.relpath(root_dir, file_path)
+    if relative_path then
+      relative_path = string.gsub(relative_path, '/', ' > ')
     else
-      relative_path = vim.fs.relpath(root_dir, file_path)
-      relative_path = string.gsub(relative_path, "/", " > ")
+      -- File is outside root_dir (e.g., library file from LSP reference)
+      relative_path = vim.fn.fnamemodify(file_path, ':t')
     end
   end
 
@@ -84,12 +85,12 @@ local function lsp_callback(err, symbols, ctx, config)
 
   find_symbol_path(symbols, cursor_line, cursor_char, breadcrumbs)
 
-  local breadcrumb_string = table.concat(breadcrumbs, " > ")
+  local breadcrumb_string = table.concat(breadcrumbs, ' > ')
 
-  if breadcrumb_string ~= "" then
+  if breadcrumb_string ~= '' then
     vim.o.winbar = breadcrumb_string
   else
-    vim.o.winbar = " "
+    vim.o.winbar = ' '
   end
 end
 
@@ -98,19 +99,19 @@ local function breadcrumbs_set()
   -- Disable breadcrumbs for bash and zsh files
   local filetype = vim.bo.filetype
   if filetype == 'bash' or filetype == 'sh' or filetype == 'zsh' then
-    vim.o.winbar = ""
+    vim.o.winbar = ''
     return
   end
 
   local bufnr = vim.api.nvim_get_current_buf()
-  local uri = vim.lsp.util.make_text_document_params(bufnr)["uri"]
+  local uri = vim.lsp.util.make_text_document_params(bufnr)['uri']
   if not uri then
     -- Silently fail for buffers without URIs
     return
   end
 
   -- Check if any LSP client supports documentSymbol
-  local clients = vim.lsp.get_clients({ bufnr = bufnr })
+  local clients = vim.lsp.get_clients { bufnr = bufnr }
   local has_document_symbol = false
   for _, client in ipairs(clients) do
     if client.server_capabilities.documentSymbolProvider then
@@ -126,24 +127,19 @@ local function breadcrumbs_set()
 
   local params = {
     textDocument = {
-      uri = uri
-    }
+      uri = uri,
+    },
   }
-  vim.lsp.buf_request(
-    bufnr,
-    'textDocument/documentSymbol',
-    params,
-    lsp_callback
-  )
+  vim.lsp.buf_request(bufnr, 'textDocument/documentSymbol', params, lsp_callback)
 end
 
 -- Setup autocmds to update breadcrumbs on cursor movement
-local breadcrumbs_augroup = vim.api.nvim_create_augroup("Breadcrumbs", { clear = true })
+local breadcrumbs_augroup = vim.api.nvim_create_augroup('Breadcrumbs', { clear = true })
 
-vim.api.nvim_create_autocmd({ "CursorMoved" }, {
+vim.api.nvim_create_autocmd({ 'CursorMoved' }, {
   group = breadcrumbs_augroup,
   callback = breadcrumbs_set,
-  desc = "Set breadcrumbs.",
+  desc = 'Set breadcrumbs.',
 })
 
 -- Return empty table to satisfy lazy.nvim's plugin spec requirement

@@ -7,6 +7,74 @@ return {
     local codelldb_path = vim.fn.stdpath('data') .. '/mason/bin/codelldb'
     local liblldb_path = vim.fn.stdpath('data') .. '/mason/packages/codelldb/extension/lldb/lib/liblldb.dylib'
 
+    -- LSP toggle state: 'rust-analyzer' or 'rs-commentary'
+    vim.g.rust_lsp_active = 'rs-commentary'
+
+    local rs_commentary_path = vim.fn.expand('$HOME/oss/rs-commentary/target/release/rs-commentary')
+
+    -- Start rs-commentary for a buffer
+    local function start_rs_commentary(bufnr)
+      bufnr = bufnr or vim.api.nvim_get_current_buf()
+      vim.lsp.start({
+        name = 'rs-commentary',
+        cmd = { 'sh', '-c', rs_commentary_path .. ' 2>> /tmp/rs-commentary-log' },
+        root_dir = vim.fs.root(bufnr, { 'Cargo.toml', '.git' }),
+        capabilities = require('blink.cmp').get_lsp_capabilities(),
+        on_attach = function()
+          vim.lsp.inlay_hint.enable(true)
+        end,
+      })
+    end
+
+    -- Toggle function
+    local function toggle_rust_lsp()
+      local bufnr = vim.api.nvim_get_current_buf()
+
+      -- Stop current LSP clients for this buffer
+      local clients = vim.lsp.get_clients({ bufnr = bufnr })
+      for _, client in ipairs(clients) do
+        if client.name == 'rust-analyzer' or client.name == 'rs-commentary' then
+          client:stop()
+        end
+      end
+
+      -- Toggle the active LSP
+      if vim.g.rust_lsp_active == 'rust-analyzer' then
+        vim.g.rust_lsp_active = 'rs-commentary'
+        start_rs_commentary()
+        vim.notify('Switched to rs-commentary', vim.log.levels.INFO)
+      else
+        vim.g.rust_lsp_active = 'rust-analyzer'
+        -- Trigger FileType to let rustaceanvim auto-attach
+        vim.cmd('doautocmd FileType rust')
+        vim.notify('Switched to rust-analyzer', vim.log.levels.INFO)
+      end
+    end
+
+    -- Global keymap for toggling (works in any Rust buffer)
+    vim.keymap.set('n', '<leader>rL', toggle_rust_lsp, { desc = 'Rust: Toggle LSP (rust-analyzer/rs-commentary)' })
+
+    -- Auto-start rs-commentary for Rust files
+    vim.api.nvim_create_autocmd('FileType', {
+      pattern = 'rust',
+      callback = function()
+        if vim.g.rust_lsp_active == 'rs-commentary' then
+          start_rs_commentary()
+        end
+      end,
+    })
+
+    -- Commands for rs-commentary
+    vim.api.nvim_create_user_command('RsCommentaryStart', function()
+      start_rs_commentary()
+    end, {})
+
+    vim.api.nvim_create_user_command('RsCommentaryStop', function()
+      for _, client in ipairs(vim.lsp.get_clients({ name = 'rs-commentary' })) do
+        client:stop()
+      end
+    end, {})
+
     vim.g.rustaceanvim = {
       -- Plugin configuration
       tools = {
@@ -18,6 +86,10 @@ return {
 
       -- LSP configuration
       server = {
+        auto_attach = function()
+          -- Only auto-attach rust-analyzer if it's the active LSP
+          return vim.g.rust_lsp_active == 'rust-analyzer'
+        end,
         on_attach = function(client, bufnr)
           -- Set keymaps for Rust-specific features
           local map = function(keys, func, desc)
@@ -127,6 +199,12 @@ return {
           executable = {
             command = codelldb_path,
             args = { '--port', '${port}' },
+          },
+        },
+        configuration = {
+          initCommands = {
+            'command script import ' .. vim.fn.expand('~/.rustup/toolchains/1.88.0-aarch64-apple-darwin/lib/rustlib/etc/lldb_lookup.py'),
+            'command source ' .. vim.fn.expand('~/.rustup/toolchains/1.88.0-aarch64-apple-darwin/lib/rustlib/etc/lldb_commands'),
           },
         },
       },

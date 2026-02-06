@@ -80,6 +80,55 @@ return {
       end,
       desc = 'Debug: See last session result.',
     },
+    -- Variable inspection: hover under cursor (uses dapui eval float)
+    {
+      '<leader>dk',
+      function()
+        require('dapui').eval(nil, { enter = true })
+      end,
+      mode = { 'n', 'v' },
+      desc = 'Debug: Inspect variable under cursor',
+    },
+    -- Evaluate expression (prompted input - use for memory/pointer inspection)
+    {
+      '<leader>de',
+      function()
+        local expr = vim.fn.input('Eval: ')
+        if expr ~= '' then
+          require('dapui').eval(expr)
+        end
+      end,
+      desc = 'Debug: Evaluate expression',
+    },
+    -- Evaluate raw/native LLDB expression (bypasses pretty-printing, shows fat ptrs)
+    {
+      '<leader>dE',
+      function()
+        local expr = vim.fn.input('LLDB expr: ')
+        if expr ~= '' then
+          -- /nat prefix tells codelldb to use native LLDB evaluation
+          require('dapui').eval('/nat expr -R -- ' .. expr)
+        end
+      end,
+      desc = 'Debug: Raw LLDB eval (show pointers/memory)',
+    },
+    -- Open REPL for interactive debugging commands
+    {
+      '<leader>dr',
+      function()
+        require('dap').repl.toggle()
+      end,
+      desc = 'Debug: Toggle REPL',
+    },
+    -- Scopes floating window (quick variable overview)
+    {
+      '<leader>ds',
+      function()
+        local widgets = require('dap.ui.widgets')
+        widgets.centered_float(widgets.scopes)
+      end,
+      desc = 'Debug: Scopes (floating)',
+    },
   },
   config = function()
     local dap = require 'dap'
@@ -150,8 +199,8 @@ return {
         },
       },
       floating = {
-        max_height = nil,
-        max_width = nil,
+        max_height = 0.4,
+        max_width = 0.55,
         border = 'rounded',
         mappings = {
           close = { 'q', '<Esc>' },
@@ -159,8 +208,8 @@ return {
       },
       windows = { indent = 1 },
       render = {
-        max_type_length = nil,
-        max_value_lines = 100,
+        max_type_length = 40,
+        max_value_lines = 30,
       },
     }
 
@@ -188,9 +237,32 @@ return {
       vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
     end
 
+    -- Float styling: make DAP eval/hover floats readable
+    vim.api.nvim_set_hl(0, 'NormalFloat', { link = 'Normal' })
+    vim.api.nvim_set_hl(0, 'FloatBorder', { link = 'Comment' })
+
     dap.listeners.after.event_initialized['dapui_config'] = dapui.open
     dap.listeners.before.event_terminated['dapui_config'] = dapui.close
     dap.listeners.before.event_exited['dapui_config'] = dapui.close
+
+    -- Rust LLDB pretty-printers (improves &str, Vec, HashMap display)
+    local rust_lldb = vim.fn.expand('~/.rustup/toolchains/1.88.0-aarch64-apple-darwin/lib/rustlib/etc')
+    dap.configurations.rust = {
+      {
+        name = 'Debug (with Rust formatters)',
+        type = 'codelldb',
+        request = 'launch',
+        program = function()
+          return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/target/debug/', 'file')
+        end,
+        cwd = '${workspaceFolder}',
+        stopOnEntry = false,
+        initCommands = {
+          ('command script import %s/lldb_lookup.py'):format(rust_lldb),
+          ('command source %s/lldb_commands'):format(rust_lldb),
+        },
+      },
+    }
 
     -- Setup Go debugging with nvim-dap-go
     require('dap-go').setup()

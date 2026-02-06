@@ -497,7 +497,7 @@ require('lazy').setup({
 
           -- Rename the variable under your cursor.
           --  Most Language Servers support renaming across files, etc.
-          map('<leader>rn', vim.lsp.buf.rename, '[R]e[n]ame')
+          map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
 
           -- Execute a code action, usually your cursor needs to be on top of an error
           -- or a suggestion from your LSP for this to activate.
@@ -521,16 +521,25 @@ require('lazy').setup({
 
           -- Fuzzy find all the symbols in your current document.
           --  Symbols are things like variables, functions, types, etc.
-          map('gO', require('telescope.builtin').lsp_document_symbols, 'Open Document Symbols')
+          map('grs', require('telescope.builtin').lsp_document_symbols, '[S]ymbols (document)')
 
           -- Fuzzy find all the symbols in your current workspace.
           --  Similar to document symbols, except searches over your entire project.
-          map('gW', require('telescope.builtin').lsp_dynamic_workspace_symbols, 'Open Workspace Symbols')
+          map('grw', require('telescope.builtin').lsp_dynamic_workspace_symbols, '[W]orkspace symbols')
 
           -- Jump to the type of the word under your cursor.
           --  Useful when you're not sure what type a variable is and you want to see
           --  the definition of its *type*, not where it was *defined*.
           map('grt', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype Definition')
+
+          -- Signature help in insert mode
+          map('<C-s>', vim.lsp.buf.signature_help, 'Signature Help', 'i')
+
+          -- Diagnostic navigation
+          map('[d', function() vim.diagnostic.jump { count = -1 } end, 'Previous diagnostic')
+          map(']d', function() vim.diagnostic.jump { count = 1 } end, 'Next diagnostic')
+          map('[e', function() vim.diagnostic.jump { count = -1, severity = vim.diagnostic.severity.ERROR } end, 'Previous error')
+          map(']e', function() vim.diagnostic.jump { count = 1, severity = vim.diagnostic.severity.ERROR } end, 'Next error')
 
           -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
           ---@param client vim.lsp.Client
