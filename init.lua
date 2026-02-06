@@ -535,11 +535,6 @@ require('lazy').setup({
           -- Signature help in insert mode
           map('<C-s>', vim.lsp.buf.signature_help, 'Signature Help', 'i')
 
-          -- Diagnostic navigation
-          map('[d', function() vim.diagnostic.jump { count = -1 } end, 'Previous diagnostic')
-          map(']d', function() vim.diagnostic.jump { count = 1 } end, 'Next diagnostic')
-          map('[e', function() vim.diagnostic.jump { count = -1, severity = vim.diagnostic.severity.ERROR } end, 'Previous error')
-          map(']e', function() vim.diagnostic.jump { count = 1, severity = vim.diagnostic.severity.ERROR } end, 'Next error')
 
           -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
           ---@param client vim.lsp.Client
@@ -929,7 +924,6 @@ require('lazy').setup({
 
       require('mini.operators').setup()
 
-      require('mini.jump').setup()
 
       require('mini.files').setup {
         -- Customization options here
