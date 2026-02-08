@@ -7,16 +7,16 @@ return {
         words = true,
         lines = true,
         search = true,
-        delete = true,
-        yank = true,
-        change = true,
-        paste = true,
+        delete = false,
+        yank = false,
+        change = false,
+        paste = false,
         treesitter = true,
         diagnostics = true,
         git = true,
         quickfix = true,
         marks = true,
-        misc = true,
+        misc = { ['.'] = false }, -- don't clobber Vim's repeat-last-edit
       },
     }
 
