@@ -1,106 +1,113 @@
+local function create_project(name)
+  local client = require('obsidian').get_client()
+  local vault_root = tostring(client.dir)
+  local filepath = vault_root .. '/' .. name .. '.md'
+
+  if vim.fn.filereadable(filepath) == 1 then
+    vim.notify('Project "' .. name .. '" already exists', vim.log.levels.WARN)
+    vim.cmd('edit ' .. vim.fn.fnameescape(filepath))
+    return
+  end
+
+  local today = os.date '%Y-%m-%d'
+  local lines = {
+    '---',
+    'scheduled: ' .. today,
+    'due: ""',
+    'tags:',
+    '  - project',
+    'state: planning',
+    '---',
+    '- [ ] ',
+  }
+
+  vim.fn.writefile(lines, filepath)
+  vim.cmd('edit ' .. vim.fn.fnameescape(filepath))
+  -- Cursor on the task line, ready to type
+  vim.api.nvim_win_set_cursor(0, { 8, 6 })
+end
+
 return {
   'obsidian-nvim/obsidian.nvim',
-  version = '*', -- recommended, use latest release instead of latest commit
+  version = '*',
   lazy = true,
-  event = {
-    'BufReadPre ' .. vim.fn.expand '~' .. '/zettelkasten/**.md',
-    'BufNewFile ' .. vim.fn.expand '~' .. '/zettelkasten/**.md',
-  },
+  ft = 'markdown',
   dependencies = {
     'nvim-lua/plenary.nvim',
     'nvim-telescope/telescope.nvim',
-    'saghen/blink.cmp', -- for completion
+    'saghen/blink.cmp',
   },
   opts = {
     workspaces = {
       {
-        name = 'zettelkasten',
-        path = '~/ZKNOTES    ',
+        name = 'journal',
+        path = '~/Journal',
       },
     },
 
-    -- Daily notes configuration
     daily_notes = {
       folder = 'daily',
       date_format = '%Y-%m-%d',
       alias_format = '%B %-d, %Y',
-      template = nil, -- Optional: set to template name for daily notes
+      template = 'daily note template',
+      default_tags = { 'daily' },
     },
 
-    -- Completion configuration for blink.cmp
     completion = {
-      nvim_cmp = false, -- Disable nvim-cmp
-      -- blink.cmp will automatically pick up obsidian sources
+      nvim_cmp = false,
     },
 
-    -- Template configuration
     templates = {
-      folder = 'templates',
+      folder = 'meta/templates',
       date_format = '%Y-%m-%d',
       time_format = '%H:%M',
-      -- Substitutions for templates
-      substitutions = {},
+      substitutions = {
+        -- Fills {{VALUE}} in fleeting/atomic templates (mirrors QuickAdd behavior)
+        VALUE = function()
+          return vim.fn.input 'Value: '
+        end,
+      },
     },
 
-    -- Note ID generation (for new notes)
+    -- Vault convention: filenames ARE the descriptive titles
     note_id_func = function(title)
-      -- Use timestamp-based IDs: YYYYMMDDHHMMSS-title
-      local suffix = ''
-      if title ~= nil then
-        suffix = title:gsub(' ', '-'):gsub('[^A-Za-z0-9-]', ''):lower()
-      else
-        -- If no title, just use timestamp
-        suffix = 'untitled'
+      if title ~= nil and title ~= '' then
+        return title
       end
-      return tostring(os.time()) .. '-' .. suffix
+      return os.date '%Y-%m-%d' .. ' untitled'
     end,
 
-    -- Note frontmatter (new API)
+    -- Minimal frontmatter to match the vault's tag-based system.
+    -- Project notes keep their scheduled/due/state via metadata passthrough.
     frontmatter = {
+      enabled = true,
       func = function(note)
-        local out = {
-          id = note.id,
-          aliases = note.aliases,
-          tags = note.tags,
-          created = os.date '%Y-%m-%d %H:%M',
-        }
-        -- Add title if it exists
-        if note.title then
-          out.title = note.title
+        local out = {}
+        if note.tags and #note.tags > 0 then
+          out.tags = note.tags
+        end
+        if note.metadata then
+          for k, v in pairs(note.metadata) do
+            out[k] = v
+          end
         end
         return out
       end,
     },
 
-    -- Preferred link style: use [[wiki-links]]
     preferred_link_style = 'wiki',
-
-    -- Disable some features that might conflict
-    disable_frontmatter = false,
-
-    -- Use new command format (not legacy)
     legacy_commands = false,
 
-    -- Checkbox order
     checkbox = {
       order = { ' ', 'x', '>', '~' },
     },
 
-    -- Markdown link handling
-    follow_url_func = function(url)
-      vim.fn.jobstart { 'open', url }
-    end,
-
-    -- Image handling
     attachments = {
-      img_folder = 'attachments',
+      folder = 'attachments',
     },
 
-    -- UI configuration
     ui = {
       enable = true,
-      -- Note: ui.checkboxes no longer affects order (use checkbox.order above)
-      -- This config only affects visual rendering
       checkboxes = {
         [' '] = { char = '󰄱', hl_group = 'ObsidianTodo' },
         ['x'] = { char = '', hl_group = 'ObsidianDone' },
@@ -114,17 +121,42 @@ return {
     },
   },
 
-  -- Keymaps using <localleader> for zettelkasten commands
-  keys = {
-    -- Daily notes
-    { '<localleader>t', '<cmd>Obsidian today<cr>', desc = 'Zettel: Today' },
-    { '<localleader>y', '<cmd>Obsidian yesterday<cr>', desc = 'Zettel: Yesterday' },
-    { '<localleader>m', '<cmd>Obsidian tomorrow<cr>', desc = 'Zettel: Tomorrow' },
+  config = function(_, opts)
+    -- Filter out workspaces whose paths don't exist on this machine
+    opts.workspaces = vim.tbl_filter(function(ws)
+      return vim.fn.isdirectory(vim.fn.expand(ws.path)) == 1
+    end, opts.workspaces or {})
 
+    if #opts.workspaces == 0 then
+      vim.notify('obsidian.nvim: no valid workspace directories found, skipping setup', vim.log.levels.WARN)
+      return
+    end
+
+    require('obsidian').setup(opts)
+
+    vim.api.nvim_create_user_command('NewProject', function(cmd_opts)
+      local name = cmd_opts.args
+      if name == '' then
+        vim.ui.input({ prompt = 'Project name: ' }, function(input)
+          if input and input ~= '' then
+            create_project(input)
+          end
+        end)
+      else
+        create_project(name)
+      end
+    end, {
+      nargs = '?',
+      desc = 'Create a new project note',
+    })
+  end,
+
+  keys = {
     -- Create and navigate
     { '<localleader>n', '<cmd>Obsidian new<cr>', desc = 'Zettel: New note' },
     { '<localleader>s', '<cmd>Obsidian quick_switch<cr>', desc = 'Zettel: Quick switch' },
     { '<localleader>f', '<cmd>Obsidian search<cr>', desc = 'Zettel: Find/Search' },
+    { '<localleader>P', '<cmd>NewProject<cr>', desc = 'Zettel: New project' },
 
     -- Links and navigation
     { 'gf', '<cmd>Obsidian follow_link<cr>', desc = 'Zettel: Follow link', ft = 'markdown' },
@@ -143,7 +175,12 @@ return {
     { '<localleader>r', '<cmd>Obsidian rename<cr>', desc = 'Zettel: Rename note' },
     { '<localleader>o', '<cmd>Obsidian open<cr>', desc = 'Zettel: Open in Obsidian app' },
 
-    -- Visual mode operations (using :<C-u> to properly handle range)
+    -- Daily notes
+    { '<localleader>t', '<cmd>Obsidian today<cr>', desc = 'Zettel: Today' },
+    { '<localleader>y', '<cmd>Obsidian yesterday<cr>', desc = 'Zettel: Yesterday' },
+    { '<localleader>m', '<cmd>Obsidian tomorrow<cr>', desc = 'Zettel: Tomorrow' },
+
+    -- Visual mode operations
     { '<localleader>x', ":<C-u>'<,'>Obsidian extract_note<cr>", desc = 'Zettel: Extract to new note', mode = 'v' },
     { '<localleader>l', ":<C-u>'<,'>Obsidian link<cr>", desc = 'Zettel: Link selection', mode = 'v' },
     { '<localleader>N', ":<C-u>'<,'>Obsidian link_new<cr>", desc = 'Zettel: New note from selection', mode = 'v' },
