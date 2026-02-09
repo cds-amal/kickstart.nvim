@@ -4,8 +4,8 @@ return {
   config = function()
     require('smart-motion').setup {
       presets = {
-        words = true,
-        lines = true,
+        words = false,
+        lines = false,
         search = true,
         delete = false,
         yank = false,
