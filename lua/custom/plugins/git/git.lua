@@ -20,6 +20,16 @@ M.lazygit = {
   },
 }
 
+M.git_conflict = {
+  'akinsho/git-conflict.nvim',
+  version = '*',
+  event = 'BufReadPre',
+  opts = {
+    default_mappings = true,
+    disable_diagnostics = true,
+  },
+}
+
 M.git_blame = {
   'f-person/git-blame.nvim',
   event = 'VeryLazy',
@@ -37,5 +47,6 @@ M.git_blame = {
 -- Convert map to an array for lazy.nvim
 return {
   M.lazygit,
+  M.git_conflict,
   M.git_blame,
 }
