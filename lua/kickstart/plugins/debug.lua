@@ -11,11 +11,8 @@ return {
   'mfussenegger/nvim-dap',
   -- NOTE: And you can specify dependencies as well
   dependencies = {
-    -- Creates a beautiful debugger UI
-    'rcarriga/nvim-dap-ui',
-
-    -- Required dependency for nvim-dap-ui
-    'nvim-neotest/nvim-nio',
+    -- Modern debugging UI (unified sidebar)
+    { 'igorlfs/nvim-dap-view', opts = { auto_toggle = true } },
 
     -- Installs the debug adapters for you
     'mason-org/mason.nvim',
@@ -72,67 +69,56 @@ return {
       end,
       desc = 'Debug: Set Breakpoint',
     },
-    -- Toggle to see last session result. Without this, you can't see session output in case of unhandled exception.
+    -- Toggle dap-view sidebar
     {
       '<F7>',
-      function()
-        require('dapui').toggle()
-      end,
-      desc = 'Debug: See last session result.',
+      '<cmd>DapViewToggle<cr>',
+      desc = 'Debug: Toggle dap-view',
     },
-    -- Variable inspection: hover under cursor (uses dapui eval float)
+    -- Variable inspection: hover under cursor (dap.ui.widgets float)
     {
       '<leader>dk',
       function()
-        require('dapui').eval(nil, { enter = true })
+        require('dap.ui.widgets').hover()
       end,
       mode = { 'n', 'v' },
       desc = 'Debug: Inspect variable under cursor',
     },
-    -- Evaluate expression (prompted input - use for memory/pointer inspection)
+    -- Add watch expression (word under cursor, or visual selection)
     {
       '<leader>de',
-      function()
-        local expr = vim.fn.input('Eval: ')
-        if expr ~= '' then
-          require('dapui').eval(expr)
-        end
-      end,
-      desc = 'Debug: Evaluate expression',
+      '<cmd>DapViewWatch<cr>',
+      mode = { 'n', 'v' },
+      desc = 'Debug: Add watch expression',
     },
-    -- Evaluate raw/native LLDB expression (bypasses pretty-printing, shows fat ptrs)
+    -- Evaluate raw/native LLDB expression via watch
     {
       '<leader>dE',
       function()
         local expr = vim.fn.input('LLDB expr: ')
         if expr ~= '' then
-          -- /nat prefix tells codelldb to use native LLDB evaluation
-          require('dapui').eval('/nat expr -R -- ' .. expr)
+          vim.cmd('DapViewWatch /nat expr -R -- ' .. expr)
         end
       end,
-      desc = 'Debug: Raw LLDB eval (show pointers/memory)',
+      desc = 'Debug: Raw LLDB eval (watch)',
     },
-    -- Open REPL for interactive debugging commands
+    -- Jump to REPL view
     {
       '<leader>dr',
-      function()
-        require('dap').repl.toggle()
-      end,
-      desc = 'Debug: Toggle REPL',
+      '<cmd>DapViewJump repl<cr>',
+      desc = 'Debug: Jump to REPL',
     },
     -- Scopes floating window (quick variable overview)
     {
       '<leader>ds',
       function()
-        local widgets = require('dap.ui.widgets')
-        widgets.centered_float(widgets.scopes)
+        require('dap.ui.widgets').centered_float(require('dap.ui.widgets').scopes)
       end,
       desc = 'Debug: Scopes (floating)',
     },
   },
   config = function()
     local dap = require 'dap'
-    local dapui = require 'dapui'
 
     require('mason-nvim-dap').setup {
       -- Makes a best effort to setup the various debuggers with
@@ -157,61 +143,6 @@ return {
     }
 
     require('nvim-dap-virtual-text').setup()
-
-    -- Dap UI setup
-    -- For more information, see |:help nvim-dap-ui|
-    dapui.setup {
-      -- Set icons to characters that are more likely to work in every terminal.
-      --    Feel free to remove or use ones that you like more! :)
-      --    Don't feel like these are good choices.
-      icons = { expanded = '▾', collapsed = '▸', current_frame = '*' },
-      controls = {
-        icons = {
-          pause = '⏸',
-          play = '▶',
-          step_into = '⏎',
-          step_over = '⏭',
-          step_out = '⏮',
-          step_back = 'b',
-          run_last = '▶▶',
-          terminate = '⏹',
-          disconnect = '⏏',
-        },
-      },
-      layouts = {
-        {
-          elements = {
-            { id = 'scopes', size = 0.25 },
-            { id = 'breakpoints', size = 0.25 },
-            { id = 'stacks', size = 0.25 },
-            { id = 'watches', size = 0.25 },
-          },
-          size = 40,
-          position = 'left',
-        },
-        {
-          elements = {
-            { id = 'repl', size = 0.5 },
-            { id = 'console', size = 0.5 },
-          },
-          size = 10,
-          position = 'bottom',
-        },
-      },
-      floating = {
-        max_height = 0.4,
-        max_width = 0.55,
-        border = 'rounded',
-        mappings = {
-          close = { 'q', '<Esc>' },
-        },
-      },
-      windows = { indent = 1 },
-      render = {
-        max_type_length = 40,
-        max_value_lines = 30,
-      },
-    }
 
     -- Change breakpoint icons
     -- vim.api.nvim_set_hl(0, 'DapBreak', { fg = '#e51400' })
@@ -240,10 +171,6 @@ return {
     -- Float styling: make DAP eval/hover floats readable
     vim.api.nvim_set_hl(0, 'NormalFloat', { link = 'Normal' })
     vim.api.nvim_set_hl(0, 'FloatBorder', { link = 'Comment' })
-
-    dap.listeners.after.event_initialized['dapui_config'] = dapui.open
-    dap.listeners.before.event_terminated['dapui_config'] = dapui.close
-    dap.listeners.before.event_exited['dapui_config'] = dapui.close
 
     -- Rust LLDB pretty-printers (improves &str, Vec, HashMap display)
     local rust_lldb = vim.fn.expand('~/.rustup/toolchains/1.88.0-aarch64-apple-darwin/lib/rustlib/etc')
