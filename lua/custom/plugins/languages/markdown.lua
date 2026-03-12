@@ -1,16 +1,18 @@
 -- selene:allow(mixed_table)
 
 return {
-  {
-    'iamcco/markdown-preview.nvim',
-    cmd = { 'MarkdownPreviewToggle', 'MarkdownPreview', 'MarkdownPreviewStop' },
-    build = function()
-      vim.fn['mkdp#util#install']()
-    end,
-    init = function()
-      vim.g.mkdp_filetypes = { 'markdown' }
-      vim.g.mkdp_browser = ''
-    end,
-    ft = { 'markdown' },
+  'selimacerbas/markdown-preview.nvim',
+  dependencies = { 'selimacerbas/live-server.nvim' },
+  cmd = { 'MarkdownPreview', 'MarkdownPreviewStop' },
+  ft = { 'markdown' },
+  config = function()
+    require('markdown_preview').setup {
+      open_browser = true,
+      mermaid_renderer = 'rust',
+    }
+  end,
+  keys = {
+    { '<leader>mp', '<cmd>MarkdownPreview<cr>', desc = 'Markdown Preview Start', ft = 'markdown' },
+    { '<leader>ms', '<cmd>MarkdownPreviewStop<cr>', desc = 'Markdown Preview Stop', ft = 'markdown' },
   },
 }
