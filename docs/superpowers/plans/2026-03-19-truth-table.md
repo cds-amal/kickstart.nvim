@@ -12,26 +12,30 @@
 
 ## File Structure
 
-- **Create:** `lua/custom/plugins/truth-table.lua` — all plugin logic (table generation, parser, formatting, commands, keymaps)
+- **Create:** `lua/custom/plugins/truth-table.lua` — user commands, keymaps, buffer operations (the "Neovim glue")
+- **Create:** `lua/custom/plugins/truth-table-core.lua` — pure functions (formatter, tokenizer, parser, evaluator, heading generator, row generator, arg parser). Exported as a module via `return M`. No `vim.api` calls; only uses `vim.trim` and `vim.split` (available in headless Lua).
+- **Create:** `tests/truth-table-test.lua` — test script run via `nvim --headless -l tests/truth-table-test.lua`
 
 **Spec:** `docs/superpowers/specs/2026-03-19-truth-table-design.md`
 
+**Testing approach:** All pure logic lives in `truth-table-core.lua` and is tested by `tests/truth-table-test.lua` using `nvim --headless -l`. The test script requires the core module, runs assertions, and prints results. Buffer-manipulating commands in `truth-table.lua` are verified manually.
+
 ---
 
-### Task 1: Table Formatting Utilities
+### Task 1: Core Module — Formatting and Row Generation
 
-The formatting functions are used by every other task, so they come first. These produce aligned markdown table strings from column headers and row data.
+The core module holds all pure functions. We start with formatting and row generation since everything else builds on them.
 
 **Files:**
-- Create: `lua/custom/plugins/truth-table.lua`
+- Create: `lua/custom/plugins/truth-table-core.lua`
 
-- [ ] **Step 1: Write `center_pad` and `format_table` functions**
-
-`center_pad(str, width)` pads a string to `width` with spaces, centering it. `format_table(headers, rows)` takes a list of header strings and a list of rows (each row is a list of strings), returns a list of formatted markdown lines.
+- [ ] **Step 1: Create the core module with formatting and row generation**
 
 ```lua
+local M = {}
+
 -- Center-pad a string to a given width
-local function center_pad(str, width)
+function M.center_pad(str, width)
   local pad = width - #str
   local left = math.floor(pad / 2)
   local right = pad - left
@@ -42,7 +46,7 @@ end
 -- headers: list of strings
 -- rows: list of lists of strings (each inner list same length as headers)
 -- Returns: list of strings (heading, separator, data rows)
-local function format_table(headers, rows)
+function M.format_table(headers, rows)
   -- Compute column widths (minimum 3 for `:---:` to work)
   local widths = {}
   for i, h in ipairs(headers) do
@@ -57,7 +61,7 @@ local function format_table(headers, rows)
   -- Build heading line
   local hdr_cells = {}
   for i, h in ipairs(headers) do
-    hdr_cells[i] = ' ' .. center_pad(h, widths[i]) .. ' '
+    hdr_cells[i] = ' ' .. M.center_pad(h, widths[i]) .. ' '
   end
   local heading = '|' .. table.concat(hdr_cells, '|') .. '|'
 
@@ -73,53 +77,22 @@ local function format_table(headers, rows)
   for _, row in ipairs(rows) do
     local cells = {}
     for i, cell in ipairs(row) do
-      cells[i] = ' ' .. center_pad(cell, widths[i]) .. ' '
+      cells[i] = ' ' .. M.center_pad(cell, widths[i]) .. ' '
     end
     lines[#lines + 1] = '|' .. table.concat(cells, '|') .. '|'
   end
 
   return lines
 end
-```
 
-- [ ] **Step 2: Verify formatting manually**
-
-Open Neovim, source the file with `:luafile lua/custom/plugins/truth-table.lua`, and run in command mode:
-
-```
-:lua print(table.concat(require('truth-table-test')({'A','B'},{{'0','0'},{'0','1'},{'1','0'},{'1','1'}}), '\n'))
-```
-
-(We will not have an exportable test harness; manual verification is fine for a config plugin. The function is internal so we verify by visual inspection after Task 2 generates a real table.)
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add lua/custom/plugins/truth-table.lua
-git commit -m "feat(truth-table): add table formatting utilities"
-```
-
----
-
-### Task 2: `:TruthTable` Command (Table Generation)
-
-Implements the `:TruthTable {args}` command that generates a truth table at the cursor position.
-
-**Files:**
-- Modify: `lua/custom/plugins/truth-table.lua`
-
-- [ ] **Step 1: Write argument parsing and row generation**
-
-```lua
 -- Generate truth table rows for N variables
 -- Returns list of rows, each row is a list of "0"/"1" strings
-local function generate_rows(n)
+function M.generate_rows(n)
   local total = 2 ^ n
   local rows = {}
   for i = 0, total - 1 do
     local row = {}
     for col = 1, n do
-      -- Leftmost column is MSB: bit weight 2^(n-1), 2^(n-2), ..., 2^0
       local bit = math.floor(i / (2 ^ (n - col))) % 2
       row[col] = tostring(bit)
     end
@@ -130,13 +103,12 @@ end
 
 -- Parse :TruthTable arguments
 -- Returns headers (list of strings) or nil + error message
-local function parse_truth_table_args(args)
+function M.parse_truth_table_args(args)
   local input = vim.trim(args)
   if input == '' then
     return nil, 'Usage: :TruthTable N or :TruthTable name1 name2 ...'
   end
 
-  -- Check if input is a single number
   local n = tonumber(input)
   if n then
     if n < 1 or n > 10 or n ~= math.floor(n) then
@@ -144,12 +116,11 @@ local function parse_truth_table_args(args)
     end
     local headers = {}
     for i = 1, n do
-      headers[i] = string.char(64 + i) -- A, B, C, ...
+      headers[i] = string.char(64 + i)
     end
     return headers
   end
 
-  -- Otherwise, space-separated variable names
   local headers = {}
   local seen = {}
   for name in input:gmatch('%S+') do
@@ -169,80 +140,228 @@ local function parse_truth_table_args(args)
 
   return headers
 end
+
+return M
 ```
 
-- [ ] **Step 2: Write the `TruthTable` command**
+- [ ] **Step 2: Commit**
+
+```bash
+git add lua/custom/plugins/truth-table-core.lua
+git commit -m "feat(truth-table): add core module with formatting and row generation"
+```
+
+---
+
+### Task 2: Tests for Formatting and Row Generation
+
+Write tests for Task 1's pure functions before moving on.
+
+**Files:**
+- Create: `tests/truth-table-test.lua`
+
+- [ ] **Step 1: Write the test harness and formatting/generation tests**
 
 ```lua
+-- Minimal test runner for nvim --headless -l
+local passed = 0
+local failed = 0
+local errors = {}
+
+local function test(name, fn)
+  local ok, err = pcall(fn)
+  if ok then
+    passed = passed + 1
+    print('  PASS: ' .. name)
+  else
+    failed = failed + 1
+    errors[#errors + 1] = { name = name, err = err }
+    print('  FAIL: ' .. name)
+    print('        ' .. tostring(err))
+  end
+end
+
+local function assert_eq(actual, expected, msg)
+  if type(actual) == 'table' and type(expected) == 'table' then
+    assert(#actual == #expected, (msg or '') .. ' length mismatch: ' .. #actual .. ' vs ' .. #expected)
+    for i = 1, #actual do
+      assert_eq(actual[i], expected[i], (msg or '') .. '[' .. i .. ']')
+    end
+  else
+    assert(actual == expected, (msg or '') .. ' expected: ' .. tostring(expected) .. ', got: ' .. tostring(actual))
+  end
+end
+
+-- Add the plugin directory to the Lua path so require works
+package.path = 'lua/?.lua;lua/?/init.lua;' .. package.path
+local core = require('custom.plugins.truth-table-core')
+
+print('\n=== Truth Table Core Tests ===\n')
+
+-- format_table tests
+print('-- format_table --')
+
+test('format_table with 2 columns', function()
+  local lines = core.format_table({ 'A', 'B' }, { { '0', '0' }, { '0', '1' }, { '1', '0' }, { '1', '1' } })
+  assert_eq(lines[1], '|  A  |  B  |')
+  assert_eq(lines[2], '|:---:|:---:|')
+  assert_eq(lines[3], '|  0  |  0  |')
+  assert_eq(#lines, 6) -- header + sep + 4 rows
+end)
+
+test('format_table pads to longest header', function()
+  local lines = core.format_table({ 'error', 'timeout' }, { { '0', '0' } })
+  assert(lines[1]:find('error'), 'should contain error')
+  assert(lines[1]:find('timeout'), 'should contain timeout')
+  -- Separator dashes should be at least as wide as header
+  assert(lines[2]:find(':%-%-%-%-%-:'), 'separator should have >= 5 dashes for error')
+end)
+
+-- generate_rows tests
+print('\n-- generate_rows --')
+
+test('generate_rows 1 variable', function()
+  local rows = core.generate_rows(1)
+  assert_eq(#rows, 2)
+  assert_eq(rows[1], { '0' })
+  assert_eq(rows[2], { '1' })
+end)
+
+test('generate_rows 2 variables', function()
+  local rows = core.generate_rows(2)
+  assert_eq(#rows, 4)
+  assert_eq(rows[1], { '0', '0' })
+  assert_eq(rows[2], { '0', '1' })
+  assert_eq(rows[3], { '1', '0' })
+  assert_eq(rows[4], { '1', '1' })
+end)
+
+test('generate_rows 3 variables LSB is rightmost', function()
+  local rows = core.generate_rows(3)
+  assert_eq(#rows, 8)
+  assert_eq(rows[1], { '0', '0', '0' })
+  assert_eq(rows[8], { '1', '1', '1' })
+  assert_eq(rows[2], { '0', '0', '1' }) -- only LSB flips
+end)
+
+-- parse_truth_table_args tests
+print('\n-- parse_truth_table_args --')
+
+test('parse numeric arg', function()
+  local headers = core.parse_truth_table_args('3')
+  assert_eq(headers, { 'A', 'B', 'C' })
+end)
+
+test('parse named args', function()
+  local headers = core.parse_truth_table_args('error timeout')
+  assert_eq(headers, { 'error', 'timeout' })
+end)
+
+test('reject N=0', function()
+  local headers, err = core.parse_truth_table_args('0')
+  assert(headers == nil)
+  assert(err:find('integer between 1 and 10'))
+end)
+
+test('reject N=11', function()
+  local headers, err = core.parse_truth_table_args('11')
+  assert(headers == nil)
+end)
+
+test('reject duplicate names', function()
+  local headers, err = core.parse_truth_table_args('error error')
+  assert(headers == nil)
+  assert(err:find('Duplicate'))
+end)
+
+test('reject invalid name', function()
+  local headers, err = core.parse_truth_table_args('123abc')
+  assert(headers == nil)
+  assert(err:find('Invalid'))
+end)
+
+-- Summary
+print('\n=== Results: ' .. passed .. ' passed, ' .. failed .. ' failed ===')
+if failed > 0 then
+  os.exit(1)
+end
+```
+
+- [ ] **Step 2: Run the tests**
+
+Run: `nvim --headless -l tests/truth-table-test.lua`
+Expected: All tests pass.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add tests/truth-table-test.lua
+git commit -m "test(truth-table): add tests for formatting and row generation"
+```
+
+---
+
+### Task 3: `:TruthTable` Command (Thin Wrapper)
+
+The command itself just calls core functions and writes to the buffer.
+
+**Files:**
+- Create: `lua/custom/plugins/truth-table.lua`
+
+- [ ] **Step 1: Write the `TruthTable` command**
+
+```lua
+local core = require('custom.plugins.truth-table-core')
+
 vim.api.nvim_create_user_command('TruthTable', function(opts)
-  local headers, err = parse_truth_table_args(opts.args)
+  local headers, err = core.parse_truth_table_args(opts.args)
   if not headers then
     vim.notify(err, vim.log.levels.WARN)
     return
   end
 
-  local rows = generate_rows(#headers)
-  local lines = format_table(headers, rows)
+  local rows = core.generate_rows(#headers)
+  local lines = core.format_table(headers, rows)
 
-  -- Insert at cursor position
   local cursor = vim.api.nvim_win_get_cursor(0)
   vim.api.nvim_buf_set_lines(0, cursor[1] - 1, cursor[1] - 1, false, lines)
 end, { nargs = '+', desc = 'Generate a truth table' })
 ```
 
-- [ ] **Step 3: Test manually**
+- [ ] **Step 2: Test manually**
 
-Open a blank buffer, run `:TruthTable 3`. Verify output:
+Open a blank buffer, run `:TruthTable 3` and `:TruthTable error timeout`. Verify output matches spec.
 
-```
-|  A  |  B  |  C  |
-|:---:|:---:|:---:|
-|  0  |  0  |  0  |
-|  0  |  0  |  1  |
-|  0  |  1  |  0  |
-|  0  |  1  |  1  |
-|  1  |  0  |  0  |
-|  1  |  0  |  1  |
-|  1  |  1  |  0  |
-|  1  |  1  |  1  |
-```
-
-Then run `:TruthTable error timeout`. Verify headers are `error` and `timeout` with 4 data rows.
-
-Test error cases: `:TruthTable 0`, `:TruthTable 11`, `:TruthTable error error`.
-
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git add lua/custom/plugins/truth-table.lua
-git commit -m "feat(truth-table): add :TruthTable command for table generation"
+git commit -m "feat(truth-table): add :TruthTable command"
 ```
 
 ---
 
-### Task 3: Table Detection
+### Task 4: Core Module — Table Detection Helpers
 
-Implements the logic to find the truth table surrounding the cursor. Used by `:TruthTableExpand`, `:TruthTableDropRow`, and `:TruthTableDropColumn`.
+The pure helper functions (`is_table_line`, `is_separator`, `split_row`, `parse_table_lines`) go in the core module. The buffer-scanning `find_table` function stays in `truth-table.lua` since it uses `vim.api`.
 
 **Files:**
-- Modify: `lua/custom/plugins/truth-table.lua`
+- Modify: `lua/custom/plugins/truth-table-core.lua`
 
-- [ ] **Step 1: Write `find_table` and `parse_table` functions**
+- [ ] **Step 1: Add table detection helpers to the core module**
 
-`find_table()` returns the 1-indexed start and end line numbers of the table the cursor is in, or nil. `parse_table(start_line, end_line)` returns a structured representation: `{ headers, rows, start_line, end_line }`.
+Append to `truth-table-core.lua` before `return M`:
 
 ```lua
 -- Check if a line looks like a table row: starts and ends with |
-local function is_table_line(line)
+function M.is_table_line(line)
   return line:match('^%s*|.*|%s*$') ~= nil
 end
 
 -- Check if a line is a separator row (e.g., |:---:|:---:|)
-local function is_separator(line)
-  -- Strip leading/trailing whitespace and outer pipes
+function M.is_separator(line)
   local inner = line:match('^%s*|(.+)|%s*$')
   if not inner then return false end
-  -- Split on | and validate each cell
   for cell in (inner .. '|'):gmatch('(.-)%|') do
     if not cell:match('^%s*:?%-+:?%s*$') then
       return false
@@ -252,7 +371,7 @@ local function is_separator(line)
 end
 
 -- Split a table row into cell contents (trimmed)
-local function split_row(line)
+function M.split_row(line)
   local cells = {}
   local inner = line:match('^%s*|(.+)|%s*$')
   if not inner then return cells end
@@ -262,6 +381,24 @@ local function split_row(line)
   return cells
 end
 
+-- Parse a list of table lines (strings) into structured data
+-- lines[1] = heading, lines[2] = separator, lines[3+] = data rows
+-- Returns { headers = {...}, rows = {{...}, ...} }
+function M.parse_table_lines(lines)
+  local headers = M.split_row(lines[1])
+  local rows = {}
+  for i = 3, #lines do
+    rows[#rows + 1] = M.split_row(lines[i])
+  end
+  return { headers = headers, rows = rows }
+end
+```
+
+- [ ] **Step 2: Add `find_table` and `parse_table` to `truth-table.lua`**
+
+These are the buffer-aware wrappers that live in the plugin file:
+
+```lua
 -- Find the table surrounding the cursor
 -- Returns start_line, end_line (1-indexed) or nil
 local function find_table()
@@ -270,87 +407,144 @@ local function find_table()
   local total = vim.api.nvim_buf_line_count(0)
 
   local cur_line = vim.api.nvim_buf_get_lines(0, cur_row - 1, cur_row, false)[1]
-  if not is_table_line(cur_line) then
+  if not core.is_table_line(cur_line) then
     return nil
   end
 
-  -- Scan upward
   local start_row = cur_row
   for row = cur_row - 1, 1, -1 do
     local line = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1]
-    if not is_table_line(line) then break end
+    if not core.is_table_line(line) then break end
     start_row = row
   end
 
-  -- Scan downward
   local end_row = cur_row
   for row = cur_row + 1, total do
     local line = vim.api.nvim_buf_get_lines(0, row - 1, row, false)[1]
-    if not is_table_line(line) then break end
+    if not core.is_table_line(line) then break end
     end_row = row
   end
 
-  -- Validate: need at least heading + separator
   if end_row - start_row < 1 then return nil end
 
-  -- Validate separator is line 2
   local sep_line = vim.api.nvim_buf_get_lines(0, start_row, start_row + 1, false)[1]
-  if not is_separator(sep_line) then return nil end
+  if not core.is_separator(sep_line) then return nil end
 
   return start_row, end_row
 end
 
--- Parse a detected table into structured data
--- Returns { headers = {...}, rows = {{...}, ...}, start_line, end_line }
 local function parse_table(start_line, end_line)
   local lines = vim.api.nvim_buf_get_lines(0, start_line - 1, end_line, false)
-  local headers = split_row(lines[1])
-  -- lines[2] is the separator, skip it
-  local rows = {}
-  for i = 3, #lines do
-    rows[#rows + 1] = split_row(lines[i])
-  end
-  return {
-    headers = headers,
-    rows = rows,
-    start_line = start_line,
-    end_line = end_line,
-  }
+  local tbl = core.parse_table_lines(lines)
+  tbl.start_line = start_line
+  tbl.end_line = end_line
+  return tbl
 end
 ```
 
-- [ ] **Step 2: Test manually**
+- [ ] **Step 3: Add tests for table detection helpers**
 
-Generate a table with `:TruthTable 2`, place cursor inside it, then run:
+Append to `tests/truth-table-test.lua`:
 
+```lua
+-- is_table_line tests
+print('\n-- is_table_line --')
+
+test('recognizes table line', function()
+  assert(core.is_table_line('| A | B |') == true)
+end)
+
+test('rejects non-table line', function()
+  assert(core.is_table_line('hello world') == false)
+end)
+
+test('rejects single pipe', function()
+  assert(core.is_table_line('| only one side') == false)
+end)
+
+-- is_separator tests
+print('\n-- is_separator --')
+
+test('recognizes centered separator', function()
+  assert(core.is_separator('|:---:|:---:|') == true)
+end)
+
+test('recognizes left-aligned separator', function()
+  assert(core.is_separator('|:---|:---|') == true)
+end)
+
+test('recognizes plain separator', function()
+  assert(core.is_separator('|---|---|') == true)
+end)
+
+test('rejects non-separator table line', function()
+  assert(core.is_separator('| A | B |') == false)
+end)
+
+test('rejects separator without dashes', function()
+  assert(core.is_separator('|::|::|') == false)
+end)
+
+-- split_row tests
+print('\n-- split_row --')
+
+test('splits simple row', function()
+  local cells = core.split_row('| A | B | C |')
+  assert_eq(cells, { 'A', 'B', 'C' })
+end)
+
+test('splits padded row', function()
+  local cells = core.split_row('|   0   |   1   |')
+  assert_eq(cells, { '0', '1' })
+end)
+
+-- parse_table_lines tests
+print('\n-- parse_table_lines --')
+
+test('parses table lines', function()
+  local lines = {
+    '| A | B |',
+    '|:---:|:---:|',
+    '| 0 | 0 |',
+    '| 0 | 1 |',
+  }
+  local tbl = core.parse_table_lines(lines)
+  assert_eq(tbl.headers, { 'A', 'B' })
+  assert_eq(#tbl.rows, 2)
+  assert_eq(tbl.rows[1], { '0', '0' })
+  assert_eq(tbl.rows[2], { '0', '1' })
+end)
 ```
-:lua local s, e = find_table(); print(s, e)
-```
 
-(The function is local so this won't work directly. To verify, temporarily add a test command or use `:TruthTableExpand` in the next task. The key verification happens in Task 4.)
+- [ ] **Step 4: Run tests**
 
-- [ ] **Step 3: Commit**
+Run: `nvim --headless -l tests/truth-table-test.lua`
+Expected: All tests pass.
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add lua/custom/plugins/truth-table.lua
-git commit -m "feat(truth-table): add table detection and parsing"
+git add lua/custom/plugins/truth-table-core.lua lua/custom/plugins/truth-table.lua tests/truth-table-test.lua
+git commit -m "feat(truth-table): add table detection helpers with tests"
 ```
 
 ---
 
-### Task 4: Predicate Parser (Tokenizer + AST)
+### Task 5: Core Module — Predicate Parser (Tokenizer + AST)
 
-Implements the tokenizer and recursive descent parser for predicate expressions.
+Implements the tokenizer, recursive descent parser, evaluator, and heading generator. All pure functions in the core module.
 
 **Files:**
-- Modify: `lua/custom/plugins/truth-table.lua`
+- Modify: `lua/custom/plugins/truth-table-core.lua`
 
-- [ ] **Step 1: Write the tokenizer**
+- [ ] **Step 1: Add the tokenizer to the core module**
+
+Append to `truth-table-core.lua` before `return M`:
 
 ```lua
 -- Tokenize a predicate string
 -- Returns list of tokens: { type = "ident"|"op"|"paren"|"literal", value = string }
-local function tokenize(input)
+function M.tokenize(input)
   local tokens = {}
   local pos = 1
   local len = #input
@@ -392,12 +586,12 @@ local function tokenize(input)
 end
 ```
 
-- [ ] **Step 2: Write the recursive descent parser**
+- [ ] **Step 2: Add the recursive descent parser**
 
 ```lua
 -- Recursive descent parser
 -- Returns AST node or nil + error message
-local function parse_predicate(tokens)
+function M.parse_predicate(tokens)
   local pos = 1
 
   local function peek()
@@ -506,11 +700,11 @@ local function parse_predicate(tokens)
 end
 ```
 
-- [ ] **Step 3: Write AST evaluation and heading generation**
+- [ ] **Step 3: Add AST evaluation and heading generation**
 
 ```lua
 -- Symbol mapping for heading display
-local SYMBOLS = {
+M.SYMBOLS = {
   ['and'] = '∧',
   ['or'] = '∨',
   ['xor'] = '⊕',
@@ -519,56 +713,211 @@ local SYMBOLS = {
 }
 
 -- Evaluate an AST node given a row context (map of name -> 0/1)
-local function eval_ast(node, ctx)
+function M.eval_ast(node, ctx)
   if node.type == 'var' then
     return ctx[node.name]
   elseif node.type == 'literal' then
     return node.value
   elseif node.type == 'not' then
-    return eval_ast(node.operand, ctx) == 0 and 1 or 0
+    return M.eval_ast(node.operand, ctx) == 0 and 1 or 0
   elseif node.type == 'and' then
-    return (eval_ast(node.left, ctx) == 1 and eval_ast(node.right, ctx) == 1) and 1 or 0
+    return (M.eval_ast(node.left, ctx) == 1 and M.eval_ast(node.right, ctx) == 1) and 1 or 0
   elseif node.type == 'or' then
-    return (eval_ast(node.left, ctx) == 1 or eval_ast(node.right, ctx) == 1) and 1 or 0
+    return (M.eval_ast(node.left, ctx) == 1 or M.eval_ast(node.right, ctx) == 1) and 1 or 0
   elseif node.type == 'xor' then
-    return eval_ast(node.left, ctx) ~= eval_ast(node.right, ctx) and 1 or 0
+    return M.eval_ast(node.left, ctx) ~= M.eval_ast(node.right, ctx) and 1 or 0
   end
 end
 
 -- Generate heading string from AST (operators replaced with symbols)
-local function ast_to_heading(node)
+function M.ast_to_heading(node)
   if node.type == 'var' then
     return node.name
   elseif node.type == 'literal' then
     return tostring(node.value)
   elseif node.type == 'not' then
-    return SYMBOLS['not'] .. ast_to_heading(node.operand)
+    return M.SYMBOLS['not'] .. M.ast_to_heading(node.operand)
   elseif node.type == 'and' or node.type == 'or' or node.type == 'xor' then
-    return ast_to_heading(node.left) .. ' ' .. SYMBOLS[node.type] .. ' ' .. ast_to_heading(node.right)
+    return M.ast_to_heading(node.left) .. ' ' .. M.SYMBOLS[node.type] .. ' ' .. M.ast_to_heading(node.right)
   end
 end
 ```
 
-- [ ] **Step 4: Test parser manually**
+- [ ] **Step 4: Add parser and evaluator tests**
 
-After sourcing the file, test by temporarily exposing a debug command:
+Append to `tests/truth-table-test.lua`:
 
+```lua
+-- tokenizer tests
+print('\n-- tokenize --')
+
+test('tokenizes simple expression', function()
+  local tokens = core.tokenize('A and B')
+  assert_eq(#tokens, 3)
+  assert_eq(tokens[1].type, 'ident')
+  assert_eq(tokens[1].value, 'A')
+  assert_eq(tokens[2].type, 'op')
+  assert_eq(tokens[2].value, 'and')
+  assert_eq(tokens[3].type, 'ident')
+  assert_eq(tokens[3].value, 'B')
+end)
+
+test('tokenizes ! without space', function()
+  local tokens = core.tokenize('!A')
+  assert_eq(#tokens, 2)
+  assert_eq(tokens[1].type, 'op')
+  assert_eq(tokens[1].value, '!')
+  assert_eq(tokens[2].type, 'ident')
+  assert_eq(tokens[2].value, 'A')
+end)
+
+test('tokenizes parentheses', function()
+  local tokens = core.tokenize('(A or B) and C')
+  assert_eq(#tokens, 7)
+  assert_eq(tokens[1].value, '(')
+  assert_eq(tokens[5].value, ')')
+end)
+
+test('tokenizes literals', function()
+  local tokens = core.tokenize('A and 1')
+  assert_eq(tokens[3].type, 'literal')
+  assert_eq(tokens[3].value, '1')
+end)
+
+test('rejects invalid character', function()
+  local tokens, err = core.tokenize('A & B')
+  assert(tokens == nil)
+  assert(err:find('Unexpected character'))
+end)
+
+-- parser tests
+print('\n-- parse_predicate --')
+
+test('parses simple and', function()
+  local tokens = core.tokenize('A and B')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(ast.type, 'and')
+  assert_eq(ast.left.type, 'var')
+  assert_eq(ast.left.name, 'A')
+  assert_eq(ast.right.name, 'B')
+end)
+
+test('parses not', function()
+  local tokens = core.tokenize('not A')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(ast.type, 'not')
+  assert_eq(ast.operand.name, 'A')
+end)
+
+test('parses ! shorthand', function()
+  local tokens = core.tokenize('!A')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(ast.type, 'not')
+  assert_eq(ast.operand.name, 'A')
+end)
+
+test('precedence: and binds tighter than or', function()
+  local tokens = core.tokenize('A or B and C')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(ast.type, 'or')
+  assert_eq(ast.right.type, 'and')
+end)
+
+test('parentheses override precedence', function()
+  local tokens = core.tokenize('(A or B) and C')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(ast.type, 'and')
+  assert_eq(ast.left.type, 'or')
+end)
+
+-- eval_ast tests
+print('\n-- eval_ast --')
+
+test('eval and', function()
+  local tokens = core.tokenize('A and B')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.eval_ast(ast, { A = 1, B = 1 }), 1)
+  assert_eq(core.eval_ast(ast, { A = 1, B = 0 }), 0)
+  assert_eq(core.eval_ast(ast, { A = 0, B = 0 }), 0)
+end)
+
+test('eval or', function()
+  local tokens = core.tokenize('A or B')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.eval_ast(ast, { A = 0, B = 0 }), 0)
+  assert_eq(core.eval_ast(ast, { A = 1, B = 0 }), 1)
+end)
+
+test('eval xor', function()
+  local tokens = core.tokenize('A xor B')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.eval_ast(ast, { A = 1, B = 1 }), 0)
+  assert_eq(core.eval_ast(ast, { A = 1, B = 0 }), 1)
+end)
+
+test('eval not', function()
+  local tokens = core.tokenize('not A')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.eval_ast(ast, { A = 1 }), 0)
+  assert_eq(core.eval_ast(ast, { A = 0 }), 1)
+end)
+
+test('eval complex: !A and B', function()
+  local tokens = core.tokenize('!A and B')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.eval_ast(ast, { A = 0, B = 1 }), 1)
+  assert_eq(core.eval_ast(ast, { A = 1, B = 1 }), 0)
+end)
+
+-- ast_to_heading tests
+print('\n-- ast_to_heading --')
+
+test('heading for A and B', function()
+  local tokens = core.tokenize('A and B')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.ast_to_heading(ast), 'A ∧ B')
+end)
+
+test('heading for not A', function()
+  local tokens = core.tokenize('not A')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.ast_to_heading(ast), '¬A')
+end)
+
+test('heading for !A', function()
+  local tokens = core.tokenize('!A')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.ast_to_heading(ast), '¬A')
+end)
+
+test('heading for A xor B', function()
+  local tokens = core.tokenize('A xor B')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.ast_to_heading(ast), 'A ⊕ B')
+end)
+
+test('heading for A or B', function()
+  local tokens = core.tokenize('A or B')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.ast_to_heading(ast), 'A ∨ B')
+end)
 ```
-:TruthTable A B
-```
 
-Then proceed to Task 5 where `:TruthTableExpand` will exercise the full parser pipeline.
+- [ ] **Step 5: Run tests**
 
-- [ ] **Step 5: Commit**
+Run: `nvim --headless -l tests/truth-table-test.lua`
+Expected: All tests pass.
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add lua/custom/plugins/truth-table.lua
-git commit -m "feat(truth-table): add predicate tokenizer, parser, and evaluator"
+git add lua/custom/plugins/truth-table-core.lua tests/truth-table-test.lua
+git commit -m "feat(truth-table): add predicate parser, evaluator, and heading generator with tests"
 ```
 
 ---
 
-### Task 5: `:TruthTableExpand` Command
+### Task 6: `:TruthTableExpand` Command
 
 Implements the command to append computed columns to an existing table.
 
@@ -607,23 +956,21 @@ vim.api.nvim_create_user_command('TruthTableExpand', function(opts)
     header_set[h] = true
   end
 
-  -- Split predicates by comma
   local predicates = vim.split(opts.args, ',', { trimempty = true })
   if #predicates == 0 then
     vim.notify('Usage: :TruthTableExpand predicate1, predicate2, ...', vim.log.levels.WARN)
     return
   end
 
-  -- Parse each predicate
   local parsed = {}
   for _, pred_str in ipairs(predicates) do
     pred_str = vim.trim(pred_str)
-    local tokens, tok_err = tokenize(pred_str)
+    local tokens, tok_err = core.tokenize(pred_str)
     if not tokens then
       vim.notify('Parse error: ' .. tok_err, vim.log.levels.ERROR)
       return
     end
-    local ast, parse_err = parse_predicate(tokens)
+    local ast, parse_err = core.parse_predicate(tokens)
     if not ast then
       vim.notify('Parse error in "' .. pred_str .. '": ' .. parse_err, vim.log.levels.ERROR)
       return
@@ -633,10 +980,9 @@ vim.api.nvim_create_user_command('TruthTableExpand', function(opts)
       vim.notify(var_err, vim.log.levels.ERROR)
       return
     end
-    parsed[#parsed + 1] = { ast = ast, heading = ast_to_heading(ast) }
+    parsed[#parsed + 1] = { ast = ast, heading = core.ast_to_heading(ast) }
   end
 
-  -- Extend headers and rows
   local new_headers = vim.list_extend({}, tbl.headers)
   for _, p in ipairs(parsed) do
     new_headers[#new_headers + 1] = p.heading
@@ -650,13 +996,12 @@ vim.api.nvim_create_user_command('TruthTableExpand', function(opts)
     end
     local new_row = vim.list_extend({}, row)
     for _, p in ipairs(parsed) do
-      new_row[#new_row + 1] = tostring(eval_ast(p.ast, ctx))
+      new_row[#new_row + 1] = tostring(core.eval_ast(p.ast, ctx))
     end
     new_rows[#new_rows + 1] = new_row
   end
 
-  -- Replace the table
-  local lines = format_table(new_headers, new_rows)
+  local lines = core.format_table(new_headers, new_rows)
   vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
 end, { nargs = '+', desc = 'Expand truth table with computed columns' })
 ```
@@ -679,7 +1024,7 @@ git commit -m "feat(truth-table): add :TruthTableExpand command"
 
 ---
 
-### Task 6: `:TruthTableDropRow` Command
+### Task 7: `:TruthTableDropRow` Command
 
 **Files:**
 - Modify: `lua/custom/plugins/truth-table.lua`
@@ -708,7 +1053,7 @@ vim.api.nvim_create_user_command('TruthTableDropRow', function()
   local row_idx = cur_row - start_line - 1 -- offset past heading and separator
   table.remove(tbl.rows, row_idx)
 
-  local lines = format_table(tbl.headers, tbl.rows)
+  local lines = core.format_table(tbl.headers, tbl.rows)
   vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
 end, { desc = 'Drop the current truth table row' })
 ```
@@ -729,7 +1074,7 @@ git commit -m "feat(truth-table): add :TruthTableDropRow command"
 
 ---
 
-### Task 7: `:TruthTableDropColumn` Command
+### Task 8: `:TruthTableDropColumn` Command
 
 **Files:**
 - Modify: `lua/custom/plugins/truth-table.lua`
@@ -779,7 +1124,7 @@ vim.api.nvim_create_user_command('TruthTableDropColumn', function()
   end
 
   -- Rewrite the table
-  local lines = format_table(tbl.headers, tbl.rows)
+  local lines = core.format_table(tbl.headers, tbl.rows)
   vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
 end, { desc = 'Drop the current truth table column' })
 ```
@@ -799,7 +1144,7 @@ git commit -m "feat(truth-table): add :TruthTableDropColumn command"
 
 ---
 
-### Task 8: Keymaps and Which-Key Group
+### Task 9: Keymaps and Which-Key Group
 
 **Files:**
 - Modify: `lua/custom/plugins/truth-table.lua`
