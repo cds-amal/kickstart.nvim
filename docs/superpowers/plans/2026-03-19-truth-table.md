@@ -444,7 +444,7 @@ end
 
 - [ ] **Step 3: Add tests for table detection helpers**
 
-Append to `tests/truth-table-test.lua`:
+Insert into `tests/truth-table-test.lua` before the `=== Results ===` summary block:
 
 ```lua
 -- is_table_line tests
@@ -700,9 +700,25 @@ function M.parse_predicate(tokens)
 end
 ```
 
-- [ ] **Step 3: Add AST evaluation and heading generation**
+- [ ] **Step 3: Add validation, evaluation, and heading generation**
 
 ```lua
+-- Validate that all variable references in an AST exist in the header set
+function M.validate_vars(node, header_set)
+  if node.type == 'var' then
+    if not header_set[node.name] then
+      return 'Unknown column: ' .. node.name
+    end
+  elseif node.type == 'not' then
+    return M.validate_vars(node.operand, header_set)
+  elseif node.type == 'and' or node.type == 'or' or node.type == 'xor' then
+    local err = M.validate_vars(node.left, header_set)
+    if err then return err end
+    return M.validate_vars(node.right, header_set)
+  end
+  return nil
+end
+
 -- Symbol mapping for heading display
 M.SYMBOLS = {
   ['and'] = '∧',
@@ -745,7 +761,7 @@ end
 
 - [ ] **Step 4: Add parser and evaluator tests**
 
-Append to `tests/truth-table-test.lua`:
+Insert into `tests/truth-table-test.lua` before the `=== Results ===` summary block:
 
 ```lua
 -- tokenizer tests
@@ -926,23 +942,9 @@ Implements the command to append computed columns to an existing table.
 
 - [ ] **Step 1: Write the `TruthTableExpand` command**
 
-```lua
--- Validate that all variable references in an AST exist in the header list
-local function validate_vars(node, header_set)
-  if node.type == 'var' then
-    if not header_set[node.name] then
-      return 'Unknown column: ' .. node.name
-    end
-  elseif node.type == 'not' then
-    return validate_vars(node.operand, header_set)
-  elseif node.type == 'and' or node.type == 'or' or node.type == 'xor' then
-    local err = validate_vars(node.left, header_set)
-    if err then return err end
-    return validate_vars(node.right, header_set)
-  end
-  return nil
-end
+Note: `validate_vars` is defined in the core module (added in Task 5, Step 3 alongside `eval_ast`).
 
+```lua
 vim.api.nvim_create_user_command('TruthTableExpand', function(opts)
   local start_line, end_line = find_table()
   if not start_line then
@@ -975,7 +977,7 @@ vim.api.nvim_create_user_command('TruthTableExpand', function(opts)
       vim.notify('Parse error in "' .. pred_str .. '": ' .. parse_err, vim.log.levels.ERROR)
       return
     end
-    local var_err = validate_vars(ast, header_set)
+    local var_err = core.validate_vars(ast, header_set)
     if var_err then
       vim.notify(var_err, vim.log.levels.ERROR)
       return
