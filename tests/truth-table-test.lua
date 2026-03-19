@@ -256,7 +256,8 @@ test('parentheses override precedence', function()
   local tokens = core.tokenize('(A or B) and C')
   local ast = core.parse_predicate(tokens)
   assert_eq(ast.type, 'and')
-  assert_eq(ast.left.type, 'or')
+  assert_eq(ast.left.type, 'paren')
+  assert_eq(ast.left.expr.type, 'or')
 end)
 
 -- eval_ast tests
@@ -329,6 +330,20 @@ test('heading for A or B', function()
   local tokens = core.tokenize('A or B')
   local ast = core.parse_predicate(tokens)
   assert_eq(core.ast_to_heading(ast), 'A ∨ B')
+end)
+
+test('heading preserves user parentheses', function()
+  local tokens = core.tokenize('!(!T or !E or S)')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.ast_to_heading(ast), '¬(¬T ∨ ¬E ∨ S)')
+end)
+
+test('eval with parenthesized subexpression', function()
+  local tokens = core.tokenize('!(A or B)')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.eval_ast(ast, { A = 0, B = 0 }), 1)
+  assert_eq(core.eval_ast(ast, { A = 1, B = 0 }), 0)
+  assert_eq(core.eval_ast(ast, { A = 0, B = 1 }), 0)
 end)
 
 -- Unicode display width tests

@@ -212,7 +212,7 @@ function M.parse_predicate(tokens)
       if not node then return nil, err end
       local _, err2 = expect('paren', ')')
       if not _ then return nil, err2 or 'Expected closing parenthesis' end
-      return node
+      return { type = 'paren', expr = node }
     else
       return nil, 'Unexpected token: ' .. tok.value
     end
@@ -278,7 +278,9 @@ function M.parse_predicate(tokens)
 end
 
 function M.validate_vars(node, header_set)
-  if node.type == 'var' then
+  if node.type == 'paren' then
+    return M.validate_vars(node.expr, header_set)
+  elseif node.type == 'var' then
     if not header_set[node.name] then
       return 'Unknown column: ' .. node.name
     end
@@ -301,7 +303,9 @@ M.SYMBOLS = {
 }
 
 function M.eval_ast(node, ctx)
-  if node.type == 'var' then
+  if node.type == 'paren' then
+    return M.eval_ast(node.expr, ctx)
+  elseif node.type == 'var' then
     return ctx[node.name]
   elseif node.type == 'literal' then
     return node.value
@@ -317,7 +321,9 @@ function M.eval_ast(node, ctx)
 end
 
 function M.ast_to_heading(node)
-  if node.type == 'var' then
+  if node.type == 'paren' then
+    return '(' .. M.ast_to_heading(node.expr) .. ')'
+  elseif node.type == 'var' then
     return node.name
   elseif node.type == 'literal' then
     return tostring(node.value)
