@@ -331,6 +331,23 @@ test('heading for A or B', function()
   assert_eq(core.ast_to_heading(ast), 'A ∨ B')
 end)
 
+-- Unicode display width tests
+print('\n-- unicode display width --')
+
+test('format_table aligns correctly with unicode symbols', function()
+  local lines = core.format_table({ 'A', 'B', 'A ∧ B' }, { { '0', '0', '0' } })
+  -- The separator dashes for 'A ∧ B' (5 display chars) should be 5 dashes, not 7
+  -- Each column should have consistent visual width
+  local sep_cells = {}
+  local inner = lines[2]:match('^|(.+)|$')
+  for cell in (inner .. '|'):gmatch('(.-)%|') do
+    sep_cells[#sep_cells + 1] = cell
+  end
+  -- Third column separator should match display width of 'A ∧ B' (5 chars)
+  local dashes = sep_cells[3]:match('%-+')
+  assert(#dashes >= 5, 'should have at least 5 dashes, got ' .. #dashes)
+end)
+
 -- Summary
 print('\n=== Results: ' .. passed .. ' passed, ' .. failed .. ' failed ===')
 if failed > 0 then

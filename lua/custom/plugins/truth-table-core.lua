@@ -1,7 +1,11 @@
 local M = {}
 
+local function display_width(str)
+  return vim.fn.strdisplaywidth(str)
+end
+
 function M.center_pad(str, width)
-  local pad = width - #str
+  local pad = width - display_width(str)
   local left = math.floor(pad / 2)
   local right = pad - left
   return string.rep(' ', left) .. str .. string.rep(' ', right)
@@ -10,11 +14,11 @@ end
 function M.format_table(headers, rows)
   local widths = {}
   for i, h in ipairs(headers) do
-    widths[i] = math.max(3, #h)
+    widths[i] = math.max(3, display_width(h))
   end
   for _, row in ipairs(rows) do
     for i, cell in ipairs(row) do
-      widths[i] = math.max(widths[i], #cell)
+      widths[i] = math.max(widths[i], display_width(cell))
     end
   end
 
