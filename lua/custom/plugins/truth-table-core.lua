@@ -94,4 +94,38 @@ function M.parse_truth_table_args(args)
   return headers
 end
 
+function M.is_table_line(line)
+  return line:match('^%s*|.*|%s*$') ~= nil
+end
+
+function M.is_separator(line)
+  local inner = line:match('^%s*|(.+)|%s*$')
+  if not inner then return false end
+  for cell in (inner .. '|'):gmatch('(.-)%|') do
+    if not cell:match('^%s*:?%-+:?%s*$') then
+      return false
+    end
+  end
+  return true
+end
+
+function M.split_row(line)
+  local cells = {}
+  local inner = line:match('^%s*|(.+)|%s*$')
+  if not inner then return cells end
+  for cell in (inner .. '|'):gmatch('(.-)%|') do
+    cells[#cells + 1] = vim.trim(cell)
+  end
+  return cells
+end
+
+function M.parse_table_lines(lines)
+  local headers = M.split_row(lines[1])
+  local rows = {}
+  for i = 3, #lines do
+    rows[#rows + 1] = M.split_row(lines[i])
+  end
+  return { headers = headers, rows = rows }
+end
+
 return M

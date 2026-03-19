@@ -109,6 +109,74 @@ test('reject invalid name', function()
   assert(err:find('Invalid'))
 end)
 
+-- is_table_line tests
+print('\n-- is_table_line --')
+
+test('recognizes table line', function()
+  assert(core.is_table_line('| A | B |') == true)
+end)
+
+test('rejects non-table line', function()
+  assert(core.is_table_line('hello world') == false)
+end)
+
+test('rejects single pipe', function()
+  assert(core.is_table_line('| only one side') == false)
+end)
+
+-- is_separator tests
+print('\n-- is_separator --')
+
+test('recognizes centered separator', function()
+  assert(core.is_separator('|:---:|:---:|') == true)
+end)
+
+test('recognizes left-aligned separator', function()
+  assert(core.is_separator('|:---|:---|') == true)
+end)
+
+test('recognizes plain separator', function()
+  assert(core.is_separator('|---|---|') == true)
+end)
+
+test('rejects non-separator table line', function()
+  assert(core.is_separator('| A | B |') == false)
+end)
+
+test('rejects separator without dashes', function()
+  assert(core.is_separator('|::|::|') == false)
+end)
+
+-- split_row tests
+print('\n-- split_row --')
+
+test('splits simple row', function()
+  local cells = core.split_row('| A | B | C |')
+  assert_eq(cells, { 'A', 'B', 'C' })
+end)
+
+test('splits padded row', function()
+  local cells = core.split_row('|   0   |   1   |')
+  assert_eq(cells, { '0', '1' })
+end)
+
+-- parse_table_lines tests
+print('\n-- parse_table_lines --')
+
+test('parses table lines', function()
+  local lines = {
+    '| A | B |',
+    '|:---:|:---:|',
+    '| 0 | 0 |',
+    '| 0 | 1 |',
+  }
+  local tbl = core.parse_table_lines(lines)
+  assert_eq(tbl.headers, { 'A', 'B' })
+  assert_eq(#tbl.rows, 2)
+  assert_eq(tbl.rows[1], { '0', '0' })
+  assert_eq(tbl.rows[2], { '0', '1' })
+end)
+
 -- Summary
 print('\n=== Results: ' .. passed .. ' passed, ' .. failed .. ' failed ===')
 if failed > 0 then
