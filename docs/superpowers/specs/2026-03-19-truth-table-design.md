@@ -15,10 +15,12 @@ Out of scope: truth table simplification, Karnaugh maps, export to other formats
 Generates a truth table and inserts it at the cursor position.
 
 `{args}` is either:
-- A number N (1-26): creates columns named A, B, C, ... up to the Nth letter
-- A space-separated list of variable names: creates columns with those names
+- A number N (1-10): creates columns named A, B, C, ... up to the Nth letter. N > 10 is refused (2^10 = 1024 rows is already large).
+- A space-separated list of variable names: creates columns with those names. Duplicate names are refused.
 
-Rows enumerate all 2^N combinations in binary counting order. The rightmost column is the least significant bit.
+Variable names (IDENT) must match `[A-Za-z_][A-Za-z0-9_]*`. This applies to both `:TruthTable` names and `:TruthTableExpand` column references.
+
+Rows enumerate all 2^N combinations in binary counting order. Column index 1 (leftmost) has bit weight 2^(N-1); column index N (rightmost) has bit weight 2^0 (LSB).
 
 Example: `:TruthTable error timeout` produces:
 
@@ -56,7 +58,7 @@ Removes the data row under the cursor. Refuses to operate on the heading row or 
 
 ### `:TruthTableDropColumn`
 
-Removes the column the cursor is positioned in (detected by counting `|` delimiters up to the cursor column). Removes the column from the heading, separator, and all data rows. Refuses if it would leave zero columns (deletes the entire table in that edge case, or just refuses; refusing is simpler and safer).
+Removes the column the cursor is positioned in (detected by counting `|` delimiters up to the cursor column). Removes the column from the heading, separator, and all data rows. Refuses if it is the only remaining column.
 
 ## Table Detection
 
@@ -65,7 +67,7 @@ When a command needs to find the current table:
 1. Check that the current line matches `^%s*|.*|%s*$`
 2. Scan upward from the cursor to find the first non-matching line; the line after it is the table start
 3. Scan downward to find the last matching line; that is the table end
-4. Line 1 of the table is the heading, line 2 is the separator (validated against `^|[:%- |]+|$`), lines 3+ are data rows
+4. Line 1 of the table is the heading, line 2 is the separator (each cell between `|` delimiters validated against `^%s*:?%-+:?%s*$`), lines 3+ are data rows
 
 ## Predicate Parser
 
@@ -82,7 +84,7 @@ unary    := ('not' | '!') unary | atom
 atom     := IDENT | '(' expr ')' | '0' | '1'
 ```
 
-IDENT matches column names (case-sensitive).
+IDENT matches `[A-Za-z_][A-Za-z0-9_]*` (case-sensitive). Tokens are delimited by whitespace, `!`, `(`, and `)`. The `!` character acts as both a token boundary and an operator, so `!error` tokenizes as `!` followed by `error`.
 
 ### AST Nodes
 
@@ -97,13 +99,15 @@ Walk the AST with a row context (map of column name to 0/1 value). Each node ret
 
 ### Heading Generation
 
-Walk the AST to produce the display string, substituting operator keywords with their Unicode symbols. Variable names and parentheses are preserved as-is.
+Walk the AST to produce the display string, substituting operator keywords with their Unicode symbols. Variable names and parentheses are preserved as-is. No implicit parentheses are added to headings; only user-supplied parentheses appear in the output.
 
 ## Table Formatting
 
 All cells are padded to equal width per column and center-aligned. The separator row uses `:---:` style (centered) with dashes matching the column width.
 
 After any mutation (expand, drop), the entire table is reformatted to maintain alignment.
+
+Each command is a single undo step (`vim.cmd('undojoin')` where needed to group multiple buffer writes).
 
 ## Keymaps
 
@@ -124,9 +128,10 @@ Single file, returns `{}` for lazy.nvim (same pattern as `rot13-comment.lua`). A
 
 ## Error Handling
 
-- `:TruthTable 0` or `:TruthTable 27`: notify with warning, do nothing
+- `:TruthTable 0` or `:TruthTable 11`: notify with warning, do nothing
+- `:TruthTable` with duplicate variable names: notify and refuse
 - `:TruthTableExpand` with unknown column name: notify which name was unrecognized
 - `:TruthTableExpand` with syntax error in predicate: notify with the parse error
 - `:TruthTableDropRow` on heading/separator: notify "Cannot drop heading or separator row"
-- `:TruthTableDropColumn` on last column: notify "Cannot drop the only column" (or delete the whole table; refusing is safer)
+- `:TruthTableDropColumn` on last column: notify "Cannot drop the only column"
 - Any command requiring a table when cursor is not in one: notify "Cursor is not inside a truth table"
