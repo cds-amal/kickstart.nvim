@@ -179,3 +179,31 @@ vim.api.nvim_create_user_command('TruthTableDropColumn', function()
   local lines = core.format_table(tbl.headers, tbl.rows)
   vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
 end, { desc = 'Drop the current truth table column' })
+
+local ok, wk = pcall(require, 'which-key')
+if ok then
+  wk.add {
+    { '<leader>tt', group = '[T]ruth Table' },
+  }
+end
+
+vim.keymap.set('n', '<leader>ttn', function()
+  vim.ui.input({ prompt = 'TruthTable args (N or name1 name2 ...): ' }, function(input)
+    if input and input ~= '' then
+      vim.cmd('TruthTable ' .. input)
+    end
+  end)
+end, { desc = 'New truth table' })
+
+vim.keymap.set('n', '<leader>tte', function()
+  vim.ui.input({ prompt = 'TruthTableExpand predicates: ' }, function(input)
+    if input and input ~= '' then
+      vim.cmd('TruthTableExpand ' .. input)
+    end
+  end)
+end, { desc = 'Expand truth table' })
+
+vim.keymap.set('n', '<leader>ttr', '<cmd>TruthTableDropRow<CR>', { desc = 'Drop truth table row' })
+vim.keymap.set('n', '<leader>ttc', '<cmd>TruthTableDropColumn<CR>', { desc = 'Drop truth table column' })
+
+return {}
