@@ -128,4 +128,200 @@ function M.parse_table_lines(lines)
   return { headers = headers, rows = rows }
 end
 
+function M.tokenize(input)
+  local tokens = {}
+  local pos = 1
+  local len = #input
+
+  while pos <= len do
+    local ws = input:match('^%s+', pos)
+    if ws then
+      pos = pos + #ws
+    end
+    if pos > len then break end
+
+    local ch = input:sub(pos, pos)
+
+    if ch == '(' or ch == ')' then
+      tokens[#tokens + 1] = { type = 'paren', value = ch }
+      pos = pos + 1
+    elseif ch == '!' then
+      tokens[#tokens + 1] = { type = 'op', value = '!' }
+      pos = pos + 1
+    elseif ch:match('[A-Za-z_]') then
+      local ident = input:match('^[A-Za-z_][A-Za-z0-9_]*', pos)
+      if ident == 'and' or ident == 'or' or ident == 'xor' or ident == 'not' then
+        tokens[#tokens + 1] = { type = 'op', value = ident }
+      else
+        tokens[#tokens + 1] = { type = 'ident', value = ident }
+      end
+      pos = pos + #ident
+    elseif ch == '0' or ch == '1' then
+      tokens[#tokens + 1] = { type = 'literal', value = ch }
+      pos = pos + 1
+    else
+      return nil, 'Unexpected character: ' .. ch .. ' at position ' .. pos
+    end
+  end
+
+  return tokens
+end
+
+function M.parse_predicate(tokens)
+  local pos = 1
+
+  local function peek()
+    return tokens[pos]
+  end
+
+  local function consume()
+    local tok = tokens[pos]
+    pos = pos + 1
+    return tok
+  end
+
+  local function expect(type, value)
+    local tok = peek()
+    if not tok or tok.type ~= type or (value and tok.value ~= value) then
+      return nil, 'Expected ' .. (value or type) .. ' at token ' .. pos
+    end
+    return consume()
+  end
+
+  local parse_expr
+
+  local function parse_atom()
+    local tok = peek()
+    if not tok then
+      return nil, 'Unexpected end of expression'
+    end
+
+    if tok.type == 'ident' then
+      consume()
+      return { type = 'var', name = tok.value }
+    elseif tok.type == 'literal' then
+      consume()
+      return { type = 'literal', value = tonumber(tok.value) }
+    elseif tok.type == 'paren' and tok.value == '(' then
+      consume()
+      local node, err = parse_expr()
+      if not node then return nil, err end
+      local _, err2 = expect('paren', ')')
+      if not _ then return nil, err2 or 'Expected closing parenthesis' end
+      return node
+    else
+      return nil, 'Unexpected token: ' .. tok.value
+    end
+  end
+
+  local function parse_unary()
+    local tok = peek()
+    if tok and tok.type == 'op' and (tok.value == 'not' or tok.value == '!') then
+      consume()
+      local operand, err = parse_unary()
+      if not operand then return nil, err end
+      return { type = 'not', operand = operand }
+    end
+    return parse_atom()
+  end
+
+  local function parse_and()
+    local left, err = parse_unary()
+    if not left then return nil, err end
+    while peek() and peek().type == 'op' and peek().value == 'and' do
+      consume()
+      local right, err2 = parse_unary()
+      if not right then return nil, err2 end
+      left = { type = 'and', left = left, right = right }
+    end
+    return left
+  end
+
+  local function parse_or()
+    local left, err = parse_and()
+    if not left then return nil, err end
+    while peek() and peek().type == 'op' and peek().value == 'or' do
+      consume()
+      local right, err2 = parse_and()
+      if not right then return nil, err2 end
+      left = { type = 'or', left = left, right = right }
+    end
+    return left
+  end
+
+  local function parse_xor()
+    local left, err = parse_or()
+    if not left then return nil, err end
+    while peek() and peek().type == 'op' and peek().value == 'xor' do
+      consume()
+      local right, err2 = parse_or()
+      if not right then return nil, err2 end
+      left = { type = 'xor', left = left, right = right }
+    end
+    return left
+  end
+
+  parse_expr = parse_xor
+
+  local result, err = parse_expr()
+  if not result then return nil, err end
+
+  if pos <= #tokens then
+    return nil, 'Unexpected token after expression: ' .. tokens[pos].value
+  end
+
+  return result
+end
+
+function M.validate_vars(node, header_set)
+  if node.type == 'var' then
+    if not header_set[node.name] then
+      return 'Unknown column: ' .. node.name
+    end
+  elseif node.type == 'not' then
+    return M.validate_vars(node.operand, header_set)
+  elseif node.type == 'and' or node.type == 'or' or node.type == 'xor' then
+    local err = M.validate_vars(node.left, header_set)
+    if err then return err end
+    return M.validate_vars(node.right, header_set)
+  end
+  return nil
+end
+
+M.SYMBOLS = {
+  ['and'] = '∧',
+  ['or'] = '∨',
+  ['xor'] = '⊕',
+  ['not'] = '¬',
+  ['!'] = '¬',
+}
+
+function M.eval_ast(node, ctx)
+  if node.type == 'var' then
+    return ctx[node.name]
+  elseif node.type == 'literal' then
+    return node.value
+  elseif node.type == 'not' then
+    return M.eval_ast(node.operand, ctx) == 0 and 1 or 0
+  elseif node.type == 'and' then
+    return (M.eval_ast(node.left, ctx) == 1 and M.eval_ast(node.right, ctx) == 1) and 1 or 0
+  elseif node.type == 'or' then
+    return (M.eval_ast(node.left, ctx) == 1 or M.eval_ast(node.right, ctx) == 1) and 1 or 0
+  elseif node.type == 'xor' then
+    return M.eval_ast(node.left, ctx) ~= M.eval_ast(node.right, ctx) and 1 or 0
+  end
+end
+
+function M.ast_to_heading(node)
+  if node.type == 'var' then
+    return node.name
+  elseif node.type == 'literal' then
+    return tostring(node.value)
+  elseif node.type == 'not' then
+    return M.SYMBOLS['not'] .. M.ast_to_heading(node.operand)
+  elseif node.type == 'and' or node.type == 'or' or node.type == 'xor' then
+    return M.ast_to_heading(node.left) .. ' ' .. M.SYMBOLS[node.type] .. ' ' .. M.ast_to_heading(node.right)
+  end
+end
+
 return M
