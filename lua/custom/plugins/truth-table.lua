@@ -187,21 +187,8 @@ if ok then
   }
 end
 
-vim.keymap.set('n', '<leader>ttn', function()
-  vim.ui.input({ prompt = 'TruthTable args (N or name1 name2 ...): ' }, function(input)
-    if input and input ~= '' then
-      vim.cmd('TruthTable ' .. input)
-    end
-  end)
-end, { desc = 'New truth table' })
-
-vim.keymap.set('n', '<leader>tte', function()
-  vim.ui.input({ prompt = 'TruthTableExpand predicates: ' }, function(input)
-    if input and input ~= '' then
-      vim.cmd('TruthTableExpand ' .. input)
-    end
-  end)
-end, { desc = 'Expand truth table' })
+vim.keymap.set('n', '<leader>ttn', ':TruthTable ', { desc = 'New truth table' })
+vim.keymap.set('n', '<leader>tte', ':TruthTableExpand ', { desc = 'Expand truth table' })
 
 vim.keymap.set('n', '<leader>ttr', '<cmd>TruthTableDropRow<CR>', { desc = 'Drop truth table row' })
 vim.keymap.set('n', '<leader>ttc', '<cmd>TruthTableDropColumn<CR>', { desc = 'Drop truth table column' })
