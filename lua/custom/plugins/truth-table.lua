@@ -115,3 +115,26 @@ vim.api.nvim_create_user_command('TruthTableExpand', function(opts)
   local lines = core.format_table(new_headers, new_rows)
   vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
 end, { nargs = '+', desc = 'Expand truth table with computed columns' })
+
+vim.api.nvim_create_user_command('TruthTableDropRow', function()
+  local start_line, end_line = find_table()
+  if not start_line then
+    vim.notify('Cursor is not inside a truth table', vim.log.levels.WARN)
+    return
+  end
+
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local cur_row = cursor[1]
+
+  if cur_row <= start_line + 1 then
+    vim.notify('Cannot drop heading or separator row', vim.log.levels.WARN)
+    return
+  end
+
+  local tbl = parse_table(start_line, end_line)
+  local row_idx = cur_row - start_line - 1
+  table.remove(tbl.rows, row_idx)
+
+  local lines = core.format_table(tbl.headers, tbl.rows)
+  vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
+end, { desc = 'Drop the current truth table row' })
