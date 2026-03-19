@@ -138,3 +138,44 @@ vim.api.nvim_create_user_command('TruthTableDropRow', function()
   local lines = core.format_table(tbl.headers, tbl.rows)
   vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
 end, { desc = 'Drop the current truth table row' })
+
+local function get_cursor_column_index()
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local col = cursor[2]
+  local line = vim.api.nvim_get_current_line()
+  local count = 0
+  for i = 1, col + 1 do
+    if line:sub(i, i) == '|' then
+      count = count + 1
+    end
+  end
+  return math.max(1, count)
+end
+
+vim.api.nvim_create_user_command('TruthTableDropColumn', function()
+  local start_line, end_line = find_table()
+  if not start_line then
+    vim.notify('Cursor is not inside a truth table', vim.log.levels.WARN)
+    return
+  end
+
+  local tbl = parse_table(start_line, end_line)
+
+  if #tbl.headers <= 1 then
+    vim.notify('Cannot drop the only column', vim.log.levels.WARN)
+    return
+  end
+
+  local col_idx = get_cursor_column_index()
+  if col_idx > #tbl.headers then
+    col_idx = #tbl.headers
+  end
+
+  table.remove(tbl.headers, col_idx)
+  for _, row in ipairs(tbl.rows) do
+    table.remove(row, col_idx)
+  end
+
+  local lines = core.format_table(tbl.headers, tbl.rows)
+  vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
+end, { desc = 'Drop the current truth table column' })
