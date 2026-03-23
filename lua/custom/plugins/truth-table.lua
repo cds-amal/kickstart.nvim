@@ -180,6 +180,38 @@ vim.api.nvim_create_user_command('TruthTableDropColumn', function()
   vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
 end, { desc = 'Drop the current truth table column' })
 
+vim.api.nvim_create_user_command('TruthTableToggle', function()
+  local start_line, end_line = find_table()
+  if not start_line then
+    vim.notify('Cursor is not inside a truth table', vim.log.levels.WARN)
+    return
+  end
+
+  local tbl = parse_table(start_line, end_line)
+
+  -- Detect current format by checking first data cell
+  local uses_tf = false
+  if #tbl.rows > 0 and #tbl.rows[1] > 0 then
+    local first = tbl.rows[1][1]
+    uses_tf = (first == 'T' or first == 'F')
+  end
+
+  for _, row in ipairs(tbl.rows) do
+    for i, cell in ipairs(row) do
+      if uses_tf then
+        if cell == 'T' then row[i] = '1'
+        elseif cell == 'F' then row[i] = '0' end
+      else
+        if cell == '1' then row[i] = 'T'
+        elseif cell == '0' then row[i] = 'F' end
+      end
+    end
+  end
+
+  local lines = core.format_table(tbl.headers, tbl.rows)
+  vim.api.nvim_buf_set_lines(0, start_line - 1, end_line, false, lines)
+end, { desc = 'Toggle truth table between 0/1 and F/T' })
+
 local ok, wk = pcall(require, 'which-key')
 if ok then
   wk.add {
@@ -190,6 +222,7 @@ end
 vim.keymap.set('n', '<leader>ttn', ':TruthTable ', { desc = 'New truth table' })
 vim.keymap.set('n', '<leader>tte', ':TruthTableExpand ', { desc = 'Expand truth table' })
 
+vim.keymap.set('n', '<leader>ttt', '<cmd>TruthTableToggle<CR>', { desc = 'Toggle 0/1 ↔ F/T' })
 vim.keymap.set('n', '<leader>ttr', '<cmd>TruthTableDropRow<CR>', { desc = 'Drop truth table row' })
 vim.keymap.set('n', '<leader>ttc', '<cmd>TruthTableDropColumn<CR>', { desc = 'Drop truth table column' })
 
