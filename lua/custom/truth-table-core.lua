@@ -154,12 +154,15 @@ function M.tokenize(input)
       pos = pos + 1
     elseif ch:match('[A-Za-z_]') then
       local ident = input:match('^[A-Za-z_][A-Za-z0-9_]*', pos)
-      if ident == 'and' or ident == 'or' or ident == 'xor' or ident == 'not' then
+      if ident == 'and' or ident == 'or' or ident == 'xor' or ident == 'not' or ident == 'implies' then
         tokens[#tokens + 1] = { type = 'op', value = ident }
       else
         tokens[#tokens + 1] = { type = 'ident', value = ident }
       end
       pos = pos + #ident
+    elseif ch == '-' and input:sub(pos, pos + 1) == '->' then
+      tokens[#tokens + 1] = { type = 'op', value = 'implies' }
+      pos = pos + 2
     elseif ch == '0' or ch == '1' then
       tokens[#tokens + 1] = { type = 'literal', value = ch }
       pos = pos + 1
@@ -265,7 +268,19 @@ function M.parse_predicate(tokens)
     return left
   end
 
-  parse_expr = parse_xor
+  local function parse_implies()
+    local left, err = parse_xor()
+    if not left then return nil, err end
+    while peek() and peek().type == 'op' and peek().value == 'implies' do
+      consume()
+      local right, err2 = parse_xor()
+      if not right then return nil, err2 end
+      left = { type = 'implies', left = left, right = right }
+    end
+    return left
+  end
+
+  parse_expr = parse_implies
 
   local result, err = parse_expr()
   if not result then return nil, err end
@@ -286,7 +301,7 @@ function M.validate_vars(node, header_set)
     end
   elseif node.type == 'not' then
     return M.validate_vars(node.operand, header_set)
-  elseif node.type == 'and' or node.type == 'or' or node.type == 'xor' then
+  elseif node.type == 'and' or node.type == 'or' or node.type == 'xor' or node.type == 'implies' then
     local err = M.validate_vars(node.left, header_set)
     if err then return err end
     return M.validate_vars(node.right, header_set)
@@ -300,6 +315,7 @@ M.SYMBOLS = {
   ['xor'] = '⊕',
   ['not'] = '¬',
   ['!'] = '¬',
+  ['implies'] = '→',
 }
 
 function M.eval_ast(node, ctx)
@@ -317,6 +333,8 @@ function M.eval_ast(node, ctx)
     return (M.eval_ast(node.left, ctx) == 1 or M.eval_ast(node.right, ctx) == 1) and 1 or 0
   elseif node.type == 'xor' then
     return M.eval_ast(node.left, ctx) ~= M.eval_ast(node.right, ctx) and 1 or 0
+  elseif node.type == 'implies' then
+    return (M.eval_ast(node.left, ctx) == 0 or M.eval_ast(node.right, ctx) == 1) and 1 or 0
   end
 end
 
@@ -329,7 +347,7 @@ function M.ast_to_heading(node)
     return tostring(node.value)
   elseif node.type == 'not' then
     return M.SYMBOLS['not'] .. M.ast_to_heading(node.operand)
-  elseif node.type == 'and' or node.type == 'or' or node.type == 'xor' then
+  elseif node.type == 'and' or node.type == 'or' or node.type == 'xor' or node.type == 'implies' then
     return M.ast_to_heading(node.left) .. ' ' .. M.SYMBOLS[node.type] .. ' ' .. M.ast_to_heading(node.right)
   end
 end

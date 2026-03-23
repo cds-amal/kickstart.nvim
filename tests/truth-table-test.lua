@@ -346,6 +346,50 @@ test('eval with parenthesized subexpression', function()
   assert_eq(core.eval_ast(ast, { A = 0, B = 1 }), 0)
 end)
 
+-- implies tests
+print('\n-- implies --')
+
+test('tokenizes implies keyword', function()
+  local tokens = core.tokenize('A implies B')
+  assert_eq(#tokens, 3)
+  assert_eq(tokens[2].type, 'op')
+  assert_eq(tokens[2].value, 'implies')
+end)
+
+test('tokenizes -> as implies', function()
+  local tokens = core.tokenize('A -> B')
+  assert_eq(#tokens, 3)
+  assert_eq(tokens[2].value, 'implies')
+end)
+
+test('eval implies: 0->0=1, 0->1=1, 1->0=0, 1->1=1', function()
+  local tokens = core.tokenize('A implies B')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.eval_ast(ast, { A = 0, B = 0 }), 1)
+  assert_eq(core.eval_ast(ast, { A = 0, B = 1 }), 1)
+  assert_eq(core.eval_ast(ast, { A = 1, B = 0 }), 0)
+  assert_eq(core.eval_ast(ast, { A = 1, B = 1 }), 1)
+end)
+
+test('heading for A implies B', function()
+  local tokens = core.tokenize('A implies B')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.ast_to_heading(ast), 'A → B')
+end)
+
+test('heading for A -> B', function()
+  local tokens = core.tokenize('A -> B')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(core.ast_to_heading(ast), 'A → B')
+end)
+
+test('implies binds looser than xor', function()
+  local tokens = core.tokenize('A xor B implies C')
+  local ast = core.parse_predicate(tokens)
+  assert_eq(ast.type, 'implies')
+  assert_eq(ast.left.type, 'xor')
+end)
+
 -- Unicode display width tests
 print('\n-- unicode display width --')
 
