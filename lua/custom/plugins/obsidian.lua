@@ -29,9 +29,12 @@ end
 
 return {
   'obsidian-nvim/obsidian.nvim',
-  version = '*',
+  version = 'v3.15.10',
   lazy = true,
-  ft = 'markdown',
+  event = {
+    'BufReadPre ' .. vim.fn.expand '~' .. '/Journal/**.md',
+    'BufNewFile ' .. vim.fn.expand '~' .. '/Journal/**.md',
+  },
   dependencies = {
     'nvim-lua/plenary.nvim',
     'nvim-telescope/telescope.nvim',
