@@ -19,6 +19,13 @@ return {
   },
   keys = {
     {
+      '\\\\',
+      function()
+        require('snacks').explorer()
+      end,
+      desc = 'Toggle file explorer',
+    },
+    {
       '<leader>bd',
       function()
         require('snacks').bufdelete()
