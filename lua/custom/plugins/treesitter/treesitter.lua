@@ -1,51 +1,38 @@
--- selene:allow(mixed_table)
 return {
-  dependencies = {
-    { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
-    { 'nvim-treesitter/nvim-treesitter-context' },
-  },
-
-  'nvim-treesitter/nvim-treesitter-textobjects',
-  config = function()
-    require('nvim-treesitter.configs').setup {
-      build = ':TSUpdate',
-      textobjects = {
-        swap = {
-          enable = true,
-          swap_next = {
-            ['<leader>a'] = '@parameter.inner',
-          },
-          swap_previous = {
-            ['<leader>A'] = '@parameter.inner',
-          },
-        },
+  {
+    'nvim-treesitter/nvim-treesitter-textobjects',
+    branch = 'main',
+    dependencies = {
+      { 'nvim-treesitter/nvim-treesitter', branch = 'main', build = ':TSUpdate' },
+    },
+    config = function()
+      require('nvim-treesitter-textobjects').setup {
         select = {
-          enable = true,
-
-          -- Automatically jump forward to textobjects, similar to targets.vim
           lookahead = true,
-
-          keymaps = {
-            -- You can use the capture groups defined in textobjects.scm
-            ['af'] = '@function.outer',
-            ['if'] = '@function.inner',
-            ['ac'] = '@class.outer',
-            -- you can optionally set descriptions to the mappings (used in the desc parameter of nvim_buf_set_keymap
-            ['ic'] = { query = '@class.inner', desc = 'Select inner part of a class region' },
-          },
-          -- You can choose the select mode (default is charwise 'v')
           selection_modes = {
             ['@parameter.outer'] = 'v', -- charwise
             ['@function.outer'] = 'V', -- linewise
             ['@class.outer'] = '<c-v>', -- blockwise
           },
-          -- If you set this to `true` (default is `false`) then any textobject is
-          -- extended to include preceding or succeeding whitespace. Succeeding
-          -- whitespace has priority in order to act similarly to eg the built-in
-          -- `ap`. Can also be a function (see above).
           include_surrounding_whitespace = false,
         },
-      },
-    }
-  end,
+      }
+
+      -- Select keymaps
+      local select = require('nvim-treesitter-textobjects.select').select_textobject
+      vim.keymap.set({ 'x', 'o' }, 'af', function() select('@function.outer', 'textobjects') end, { desc = 'outer function' })
+      vim.keymap.set({ 'x', 'o' }, 'if', function() select('@function.inner', 'textobjects') end, { desc = 'inner function' })
+      vim.keymap.set({ 'x', 'o' }, 'ac', function() select('@class.outer', 'textobjects') end, { desc = 'outer class' })
+      vim.keymap.set({ 'x', 'o' }, 'ic', function() select('@class.inner', 'textobjects') end, { desc = 'inner class' })
+
+      -- Swap keymaps
+      local swap = require('nvim-treesitter-textobjects.swap')
+      vim.keymap.set('n', '<leader>a', function() swap.swap_next('@parameter.inner') end, { desc = 'Swap next parameter' })
+      vim.keymap.set('n', '<leader>A', function() swap.swap_previous('@parameter.inner') end, { desc = 'Swap previous parameter' })
+    end,
+  },
+  {
+    'nvim-treesitter/nvim-treesitter-context',
+    enabled = false, -- disabled until it supports Neovim 0.12
+  },
 }
