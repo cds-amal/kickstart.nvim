@@ -19,8 +19,8 @@ return {
     { '<leader>hc', function() require('haunt.api').clear_all() end, desc = 'Haunt: Clear all annotations' },
     { '<leader>hq', function() require('haunt.api').to_quickfix() end, desc = 'Haunt: Send to quickfix' },
     { '<leader>hl', function() require('haunt.picker').show() end, desc = 'Haunt: List annotations (picker)' },
-    -- Navigation with [h / ]h (vim-style prev/next)
-    { ']h', function() require('haunt.api').next() end, desc = 'Next haunt annotation' },
-    { '[h', function() require('haunt.api').prev() end, desc = 'Previous haunt annotation' },
+    -- Navigation with ]H / [H (uppercase to avoid collision with gitlineage's ]h/[h)
+    { ']H', function() require('haunt.api').next() end, desc = 'Next haunt annotation' },
+    { '[H', function() require('haunt.api').prev() end, desc = 'Previous haunt annotation' },
   },
 }
