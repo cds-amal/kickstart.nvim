@@ -54,3 +54,5 @@ end
 
 -- Map gx to open URLs in default browser
 vim.keymap.set('n', 'gx', open_url, { desc = 'Open URL in browser' })
+
+vim.keymap.set('n', '<leader>jj', ':%!jq .<CR>', { desc = 'Format JSON with jq' })
