@@ -19,7 +19,7 @@ return {
     notify = { enabled = true },
     rename = { enabled = true },
     scope = { enabled = true },
-    words = { enabled = true },
+    words = { enabled = true, modes = { 'n' } },
   },
   keys = {
     {
@@ -78,6 +78,20 @@ return {
         Snacks.picker.gh_pr { state = 'all' }
       end,
       desc = 'GitHub Pull Requests (all)',
+    },
+    {
+      ']w',
+      function()
+        Snacks.words.jump(1, true)
+      end,
+      desc = 'Next LSP reference',
+    },
+    {
+      '[w',
+      function()
+        Snacks.words.jump(-1, true)
+      end,
+      desc = 'Previous LSP reference',
     },
     {
       '<leader>n',
