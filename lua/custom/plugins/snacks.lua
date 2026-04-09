@@ -11,10 +11,14 @@ return {
     dashboard = { enabled = false },
     debug = { enabled = true },
     explorer = { enabled = true },
+    gh = { enabled = true },
     gitbrowse = { enabled = true },
+    indent = { enabled = true },
+    picker = { enabled = true },
     input = { enabled = true },
     notify = { enabled = true },
     rename = { enabled = true },
+    scope = { enabled = true },
     words = { enabled = true },
   },
   keys = {
@@ -46,6 +50,34 @@ return {
       end,
       desc = 'Git Browse',
       mode = { 'n', 'v' },
+    },
+    {
+      '<leader>gi',
+      function()
+        Snacks.picker.gh_issue()
+      end,
+      desc = 'GitHub Issues (open)',
+    },
+    {
+      '<leader>gI',
+      function()
+        Snacks.picker.gh_issue { state = 'all' }
+      end,
+      desc = 'GitHub Issues (all)',
+    },
+    {
+      '<leader>gp',
+      function()
+        Snacks.picker.gh_pr()
+      end,
+      desc = 'GitHub Pull Requests (open)',
+    },
+    {
+      '<leader>gP',
+      function()
+        Snacks.picker.gh_pr { state = 'all' }
+      end,
+      desc = 'GitHub Pull Requests (all)',
     },
     {
       '<leader>n',
