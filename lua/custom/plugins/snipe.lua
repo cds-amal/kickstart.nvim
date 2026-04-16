@@ -1,5 +1,6 @@
 return {
   'leath-dub/snipe.nvim',
+  enabled = false, -- replaced by Snacks.picker.buffers (see snacks.lua)
   keys = {
     {
       'gb',

@@ -37,6 +37,13 @@ return {
       desc = 'Delete Buffer',
     },
     {
+      'gb',
+      function()
+        Snacks.picker.buffers()
+      end,
+      desc = '[G]et [B]uffers',
+    },
+    {
       '<leader>cR',
       function()
         require('snacks').rename.rename_file()

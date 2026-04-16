@@ -163,7 +163,6 @@ return {
 
     -- Links and navigation
     { 'gf', '<cmd>Obsidian follow_link<cr>', desc = 'Zettel: Follow link', ft = 'markdown' },
-    { 'gb', '<C-o>', desc = 'Zettel: Go back', ft = 'markdown' },
     { '<localleader>b', '<cmd>Obsidian backlinks<cr>', desc = 'Zettel: Backlinks' },
 
     -- Organization
