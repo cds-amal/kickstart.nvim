@@ -888,6 +888,8 @@ require('lazy').setup({
 
       require('mini.operators').setup()
 
+      -- Auto-pair brackets/quotes (replaces nvim-autopairs)
+      require('mini.pairs').setup()
 
       require('mini.comment').setup {
         options = {
@@ -982,7 +984,7 @@ require('lazy').setup({
   require 'kickstart.plugins.debug',
   -- require 'kickstart.plugins.indent_line', -- replaced by snacks.indent
   require 'kickstart.plugins.lint',
-  require 'kickstart.plugins.autopairs',
+  -- require 'kickstart.plugins.autopairs', -- replaced by mini.pairs
   -- require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
