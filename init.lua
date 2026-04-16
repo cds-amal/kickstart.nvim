@@ -955,6 +955,18 @@ require('lazy').setup({
     config = function()
       vim.treesitter.language.register('bash', 'zsh')
       require('nvim-treesitter').install { 'bash', 'c', 'cue', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+
+      -- Use treesitter's AST-aware indentexpr wherever a parser is available.
+      -- Indent WIDTH (shiftwidth/tabstop) remains per-filetype; this only changes
+      -- the engine that computes indent levels.
+      vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('ts-indent', { clear = true }),
+        callback = function(args)
+          if pcall(vim.treesitter.get_parser, args.buf) then
+            vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end
+        end,
+      })
     end,
   },
 

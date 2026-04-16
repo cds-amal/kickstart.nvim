@@ -56,3 +56,18 @@ end
 vim.keymap.set('n', 'gx', open_url, { desc = 'Open URL in browser' })
 
 vim.keymap.set('n', '<leader>jj', ':%!jq .<CR>', { desc = 'Format JSON with jq' })
+
+-- Indent-aware paste: after pasting a linewise register, re-indent the pasted
+-- region via `=` (which uses indentexpr, now treesitter-backed where possible).
+-- Charwise/blockwise pastes are left alone.
+local function smart_paste(cmd)
+  return function()
+    vim.cmd('normal! ' .. vim.v.count1 .. '"' .. vim.v.register .. cmd)
+    if vim.fn.getregtype(vim.v.register) == 'V' then
+      vim.cmd('silent normal! `[=`]')
+    end
+  end
+end
+
+vim.keymap.set({ 'n', 'x' }, 'p', smart_paste('p'), { desc = 'Paste (indent-aware)' })
+vim.keymap.set({ 'n', 'x' }, 'P', smart_paste('P'), { desc = 'Paste before (indent-aware)' })

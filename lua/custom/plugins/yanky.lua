@@ -1,5 +1,6 @@
 return {
   'gbprod/yanky.nvim',
+  enabled = false, -- testing native treesitter-indent paste; revert if it regresses
   opts = {},
   keys = {
     { 'p', '<Plug>(YankyPutAfter)', mode = { 'n', 'x' } },
