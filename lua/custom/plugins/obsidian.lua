@@ -37,10 +37,14 @@ return {
   },
   dependencies = {
     'nvim-lua/plenary.nvim',
-    'nvim-telescope/telescope.nvim',
+    'folke/snacks.nvim',
     'saghen/blink.cmp',
   },
   opts = {
+    picker = {
+      name = 'snacks.pick',
+    },
+
     workspaces = {
       {
         name = 'journal',

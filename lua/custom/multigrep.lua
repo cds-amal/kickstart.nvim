@@ -2,8 +2,7 @@
 -- `<pattern>  <glob>`. The text before the double-space is the regex; the
 -- text after is an rg `-g` glob (e.g. `foo  *.lua`).
 --
--- Originally a Telescope picker; now a Snacks picker so we can drop the
--- Telescope dependency once the rest of the migration completes.
+-- Originally a Telescope picker; ported to Snacks.picker.
 
 local M = {}
 
