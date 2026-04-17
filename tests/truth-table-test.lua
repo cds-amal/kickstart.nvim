@@ -27,7 +27,7 @@ local function assert_eq(actual, expected, msg)
 end
 
 package.path = 'lua/?.lua;lua/?/init.lua;' .. package.path
-local core = require('custom.truth-table-core')
+local core = require('truth-table-core')
 
 print('\n=== Truth Table Core Tests ===\n')
 

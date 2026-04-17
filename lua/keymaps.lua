@@ -73,7 +73,7 @@ vim.keymap.set({ 'n', 'x' }, 'p', smart_paste('p'), { desc = 'Paste (indent-awar
 vim.keymap.set({ 'n', 'x' }, 'P', smart_paste('P'), { desc = 'Paste before (indent-aware)' })
 
 -- Multigrep: `<pattern>  <glob>` live picker via Snacks.picker
-require('custom.multigrep').setup()
+require('multigrep').setup()
 
 -- Fuzzy-finder keymaps (migrated from Telescope to Snacks.picker)
 local map = vim.keymap.set

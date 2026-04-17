@@ -3,7 +3,7 @@
 -- init.lua once mason + blink.cmp have loaded.
 --
 -- Picker bindings (grr/gri/grd/grs/grw/grt) go through Snacks.picker; see
--- lua/custom/plugins/snacks.lua.
+-- lua/plugins/snacks.lua.
 
 local M = {}
 

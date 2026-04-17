@@ -9,7 +9,7 @@ vim.opt_local.expandtab = true
 vim.opt_local.foldlevel = 3
 
 -- Load the ZSH command utilities module
-local zsh_utils = require('custom.plugins.languages.zsh-utils')
+local zsh_utils = require('plugins.languages.zsh-utils')
 
 -- Create buffer-local mappings
 vim.keymap.set('n', '<localleader>s', function()

@@ -1,4 +1,4 @@
--- lua/custom/plugins/languages/zsh-utils.lua
+-- lua/plugins/languages/zsh-utils.lua
 -- Utility functions for ZSH file manipulation
 
 local M = {}

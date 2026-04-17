@@ -1,5 +1,5 @@
-local golang = require 'custom.plugins.languages.golang'
-local markdown = require 'custom.plugins.languages.markdown'
+local golang = require 'plugins.languages.golang'
+local markdown = require 'plugins.languages.markdown'
 
 local language_plugins = {}
 

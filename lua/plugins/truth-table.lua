@@ -1,4 +1,4 @@
-local core = require('custom.truth-table-core')
+local core = require('truth-table-core')
 
 local function find_table()
   local cursor = vim.api.nvim_win_get_cursor(0)

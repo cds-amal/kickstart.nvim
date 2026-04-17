@@ -9,8 +9,8 @@
 vim.g.mapleader = ','
 vim.g.maplocalleader = '\\'
 
--- Editor options (lives in lua/custom/options.lua)
-require 'custom.options'
+-- Editor options (lives in lua/options.lua)
+require 'options'
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -88,19 +88,6 @@ require 'filetypes'
 require('lazy').setup({
   'NMAC427/guess-indent.nvim', -- Detect tabstop and shiftwidth automatically
 
-  { -- Adds git related signs to the gutter, as well as utilities for managing changes
-    'lewis6991/gitsigns.nvim',
-    opts = {
-      signs = {
-        add = { text = '+' },
-        change = { text = '~' },
-        delete = { text = '_' },
-        topdelete = { text = '‾' },
-        changedelete = { text = '~' },
-      },
-    },
-  },
-
   { -- Pending-keybind hints
     'folke/which-key.nvim',
     event = 'VimEnter',
@@ -154,8 +141,8 @@ require('lazy').setup({
     },
   },
 
-  -- Fuzzy finder keymaps live in lua/custom/keymaps.lua; all pickers are
-  -- driven by Snacks.picker (see lua/custom/plugins/snacks.lua).
+  -- Fuzzy finder keymaps live in lua/keymaps.lua; all pickers are driven
+  -- by Snacks.picker (see lua/plugins/snacks.lua).
 
   -- LSP Plugins
   {
@@ -170,7 +157,7 @@ require('lazy').setup({
       },
     },
   },
-  { -- Main LSP configuration; implementation in lua/custom/lsp.lua
+  { -- Main LSP configuration; implementation in lua/lsp.lua
     'neovim/nvim-lspconfig',
     dependencies = {
       { 'mason-org/mason.nvim', opts = {} },
@@ -180,7 +167,7 @@ require('lazy').setup({
       'saghen/blink.cmp',
     },
     config = function()
-      require('custom.lsp').setup()
+      require('lsp').setup()
     end,
   },
 
@@ -258,7 +245,7 @@ require('lazy').setup({
           local ls = require('luasnip')
           -- Load custom Lua snippets after LuaSnip is initialized
           vim.schedule(function()
-            require('luasnip.loaders.from_lua').lazy_load({ paths = '~/.config/nvim/lua/custom/snippets' })
+            require('luasnip.loaders.from_lua').lazy_load({ paths = '~/.config/nvim/lua/snippets' })
           end)
         end,
       },
@@ -473,15 +460,8 @@ require('lazy').setup({
     end,
   },
 
-  -- Kickstart-sourced specs still in use (debug, lint, gitsigns). The
-  -- indent_line and autopairs specs lived here too, replaced by snacks.indent
-  -- and mini.pairs respectively.
-  require 'kickstart.plugins.debug',
-  require 'kickstart.plugins.lint',
-  require 'kickstart.plugins.gitsigns',
-
-  -- Auto-import every spec in lua/custom/plugins/ (see `:help lazy.nvim-🔌-plugin-spec`).
-  { import = 'custom.plugins' },
+  -- Auto-import every spec in lua/plugins/ (see `:help lazy.nvim-🔌-plugin-spec`).
+  { import = 'plugins' },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -504,12 +484,12 @@ require('lazy').setup({
   },
 })
 
-require 'custom.git-commit'
-require 'custom.plugins.utils.messages'
-require 'custom.keymaps'
-require 'custom.close-unnamed'
-require 'custom.strip-whitespaces'
-require 'custom.virtual-copy'
+require 'git-commit'
+require 'messages'
+require 'keymaps'
+require 'close-unnamed'
+require 'strip-whitespaces'
+require 'virtual-copy'
 
 _G.dd = function(...)
   require('snacks').debug.inspect(...)
