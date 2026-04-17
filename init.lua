@@ -903,7 +903,7 @@ require('lazy').setup({
   },
 })
 
-require 'custom.plugins.customgit.commit'
+require 'custom.plugins.git.commit'
 require 'custom.plugins.utils.messages'
 require 'custom.keymaps'
 require 'custom.close-unnamed'
