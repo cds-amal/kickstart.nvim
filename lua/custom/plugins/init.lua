@@ -1,12 +1,7 @@
--- You can add your own plugins here or in other files in this directory!
---  I promise not to create any merge conflicts in this directory :)
---
--- See the kickstart.nvim README for more information
-
+-- Top-level specs in lua/custom/plugins/ are auto-imported by lazy.nvim
+-- via `{ import = 'custom.plugins' }` in init.lua. Only subdirectories
+-- (like languages/, which aggregates multiple specs) need to be required
+-- explicitly from here.
 return {
-  -- Load custome plugins
-  require 'custom.plugins.treesitter.treesitter',
   require 'custom.plugins.languages',
-  require 'custom.plugins.git.git',
-  -- require 'custom.plugins.jq-treesitter',
 }

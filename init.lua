@@ -504,7 +504,7 @@ require('lazy').setup({
   },
 })
 
-require 'custom.plugins.git.commit'
+require 'custom.git-commit'
 require 'custom.plugins.utils.messages'
 require 'custom.keymaps'
 require 'custom.close-unnamed'
