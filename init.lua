@@ -385,8 +385,6 @@ require('lazy').setup({
         }
       end, { desc = '[P]lugin path search' })
 
-      require('custom.plugins.telescope.multigrep').setup()
-
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
         -- You can pass additional configuration to Telescope to change the theme, layout, etc.

@@ -1,55 +1,83 @@
-local pickers = require 'telescope.pickers'
-local finders = require 'telescope.finders'
-local make_entry = require 'telescope.make_entry'
-local conf = require('telescope.config').values
+-- Multigrep: live rg search where the prompt is split on double-space into
+-- `<pattern>  <glob>`. The text before the double-space is the regex; the
+-- text after is an rg `-g` glob (e.g. `foo  *.lua`).
+--
+-- Originally a Telescope picker; now a Snacks picker so we can drop the
+-- Telescope dependency once the rest of the migration completes.
 
 local M = {}
 
-local live_multigrep = function(opts)
-  opts = opts or {}
-  opts.cwd = opts.cwd or vim.uv.cwd()
+local uv = vim.uv or vim.loop
 
-  local finder = finders.new_async_job {
-    command_generator = function(prompt)
-      if not prompt or prompt == '' then
-        return nil
-      end
+---@param opts snacks.picker.Config
+---@param ctx { filter: { search: string }, opts: fun(table): table }
+local function multigrep_finder(opts, ctx)
+  local search = ctx.filter.search or ''
+  if search == '' then
+    return function() end
+  end
 
-      local pieces = vim.split(prompt, '  ')
-      local args = { 'rg' }
-      if pieces[1] then
-        table.insert(args, '-e')
-        table.insert(args, pieces[1])
-      end
+  local pieces = vim.split(search, '  ', { plain = true })
+  local pattern = pieces[1]
+  if not pattern or pattern == '' then
+    return function() end
+  end
 
-      if pieces[2] then
-        table.insert(args, '-g')
-        table.insert(args, pieces[2])
-      end
-
-      ---@diagnostic disable-next-line: deprecated
-      return vim.tbl_flatten {
-        args,
-        { '--color=never', '--no-heading', '--with-filename', '--line-number', '--column', '--smart-case' },
-      }
-    end,
-    entry_maker = make_entry.gen_from_vimgrep(opts),
-    cwd = opts.cwd,
+  local args = {
+    '--color=never',
+    '--no-heading',
+    '--with-filename',
+    '--line-number',
+    '--column',
+    '--smart-case',
+    '-e',
+    pattern,
   }
 
-  pickers
-    .new(opts, {
-      debounce = 100,
-      prompt_title = 'Multi Grep',
-      finder = finder,
-      previewer = conf.grep_previewer(opts),
-      sorter = require('telescope.sorters').empty(),
-    })
-    :find()
+  local glob = pieces[2]
+  if glob and glob ~= '' then
+    table.insert(args, '-g')
+    table.insert(args, glob)
+  end
+
+  local cwd = vim.fs.normalize(opts.cwd or uv.cwd() or '.')
+
+  return require('snacks.picker.source.proc').proc(
+    ctx:opts {
+      notify = false, -- rg exits non-zero on no-match; don't surface that
+      cmd = 'rg',
+      args = args,
+      cwd = cwd,
+      ---@param item snacks.picker.finder.Item
+      transform = function(item)
+        item.cwd = cwd
+        local file, line, col, text = item.text:match '^(.-):(%d+):(%d+):(.*)$'
+        if not (file and line and col) then
+          return false
+        end
+        item.file = file
+        item.pos = { tonumber(line), tonumber(col) - 1 }
+        item.line = text
+      end,
+    },
+    ctx
+  )
 end
 
-M.setup = function()
-  vim.keymap.set('n', '<leader>sG', live_multigrep)
+function M.open(opts)
+  return Snacks.picker.pick(vim.tbl_deep_extend('force', {
+    source = 'multigrep',
+    finder = multigrep_finder,
+    format = 'file',
+    live = true,
+    supports_live = true,
+    show_empty = true,
+    title = 'Multi Grep  (pattern  glob)',
+  }, opts or {}))
+end
+
+function M.setup()
+  vim.keymap.set('n', '<leader>sG', M.open, { desc = '[S]earch [G]rep (pattern + glob)' })
 end
 
 return M
