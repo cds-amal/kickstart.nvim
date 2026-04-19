@@ -29,6 +29,10 @@ vim.o.signcolumn = 'yes'
 vim.o.updatetime = 250
 vim.o.timeoutlen = 300
 
+-- Default border for floats opened without an explicit one (hover, signature
+-- help, rename prompt). Diagnostic float sets its own in lsp.lua.
+vim.o.winborder = 'rounded'
+
 vim.o.splitright = true
 vim.o.splitbelow = true
 
