@@ -10,6 +10,8 @@ local M = {}
 -- Language servers to install and enable. `rust_analyzer` is deliberately
 -- excluded here because rustaceanvim owns its lifecycle.
 local servers = {
+  cssls = {},
+
   gopls = {},
 
   jsonls = {
@@ -61,6 +63,13 @@ local function on_attach(event)
     map('<leader>th', function()
       vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
     end, '[T]oggle Inlay [H]ints')
+  end
+
+  if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_documentColor, event.buf) then
+    vim.lsp.document_color.enable(true, { bufnr = event.buf }, { style = 'virtual' })
+    map('<leader>tc', function()
+      vim.lsp.document_color.enable(not vim.lsp.document_color.is_enabled { bufnr = event.buf }, { bufnr = event.buf }, { style = 'virtual' })
+    end, '[T]oggle [C]olor previews')
   end
 
   -- Reposition diagnostic floats to the top-right so they don't overlap
