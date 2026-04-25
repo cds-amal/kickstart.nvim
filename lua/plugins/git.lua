@@ -5,7 +5,7 @@ return {
     event = 'BufReadPre',
     opts = {
       default_mappings = true,
-      disable_diagnostics = true,
+      disable_diagnostics = false,
     },
   },
 }
