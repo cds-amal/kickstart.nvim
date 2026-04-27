@@ -444,15 +444,19 @@ require('lazy').setup({
     build = ':TSUpdate',
     config = function()
       vim.treesitter.language.register('bash', 'zsh')
-      require('nvim-treesitter').install { 'bash', 'c', 'cue', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+      require('nvim-treesitter').install { 'bash', 'c', 'cue', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'rust', 'vim', 'vimdoc' }
 
-      -- Use treesitter's AST-aware indentexpr wherever a parser is available.
-      -- Indent WIDTH (shiftwidth/tabstop) remains per-filetype; this only changes
-      -- the engine that computes indent levels.
+      -- Use treesitter's AST-aware indentexpr wherever a parser AND indent
+      -- queries are both available. Without the queries check, a parser with
+      -- no indents.scm makes indentexpr return 0, sending <CR> to column 0.
+      -- Threshold-to-change: filetype is used as a proxy for the parser language;
+      -- this is correct only while we register at most one alias (bash<-zsh).
+      -- If more language aliases get registered, resolve the parser language
+      -- properly (e.g. via vim.treesitter.language.get_lang) instead.
       vim.api.nvim_create_autocmd('FileType', {
         group = vim.api.nvim_create_augroup('ts-indent', { clear = true }),
         callback = function(args)
-          if pcall(vim.treesitter.get_parser, args.buf) then
+          if pcall(vim.treesitter.get_parser, args.buf) and vim.treesitter.query.get(vim.bo[args.buf].filetype, 'indents') then
             vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
           end
         end,
