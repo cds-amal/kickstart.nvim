@@ -79,7 +79,7 @@ require('multigrep').setup()
 local map = vim.keymap.set
 map('n', '<leader>sh', function() Snacks.picker.help() end, { desc = '[S]earch [H]elp' })
 map('n', '<leader>sk', function() Snacks.picker.keymaps() end, { desc = '[S]earch [K]eymaps' })
-map('n', '<leader>sf', function() Snacks.picker.files() end, { desc = '[S]earch [F]iles' })
+map('n', '<leader>sf', function() Snacks.picker.files { hidden = true } end, { desc = '[S]earch [F]iles' })
 map('n', '<leader>ss', function() Snacks.picker() end, { desc = '[S]earch [S]elect picker' })
 map('n', '<leader>sw', function() Snacks.picker.grep_word() end, { desc = '[S]earch current [W]ord' })
 map('n', '<leader>sg', function() Snacks.picker.grep() end, { desc = '[S]earch by [G]rep' })
@@ -90,7 +90,7 @@ map('n', '<leader>s.', function() Snacks.picker.recent() end, { desc = '[S]earch
 map('n', '<leader><leader>', function() Snacks.picker.buffers() end, { desc = '[ ] Find existing buffers' })
 map('n', '<leader>/', function() Snacks.picker.lines() end, { desc = '[/] Fuzzily search in current buffer' })
 map('n', '<leader>s/', function() Snacks.picker.grep_buffers() end, { desc = '[S]earch [/] in Open Files' })
-map('n', '<leader>sn', function() Snacks.picker.files { cwd = vim.fn.stdpath 'config' } end, { desc = '[S]earch [N]eovim files' })
+map('n', '<leader>sn', function() Snacks.picker.files { cwd = vim.fn.stdpath 'config', hidden = true } end, { desc = '[S]earch [N]eovim files' })
 map('n', '<leader>ep', function()
-  Snacks.picker.files { cwd = vim.fs.joinpath(vim.fn.stdpath 'data', 'lazy') }
+  Snacks.picker.files { cwd = vim.fs.joinpath(vim.fn.stdpath 'data', 'lazy'), hidden = true }
 end, { desc = '[P]lugin path search' })
