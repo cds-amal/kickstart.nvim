@@ -1,6 +1,7 @@
 return {
   dir = '~/dev/solana-rust-vscode-course/neovim',
-  name = 'lesson',
+  name = 'katas.solana_rust',
+  main = 'katas.solana_rust',
   dependencies = {
     { 'cds-io/kata-framework', dir = '~/nvim-plugins/kata-framework' },
     'MeanderingProgrammer/render-markdown.nvim',
