@@ -374,7 +374,10 @@ require('lazy').setup({
         },
       }
 
-      require('mini.operators').setup()
+      -- Disable mini.operators' `replace` operator: its default `gr` prefix
+      -- collides with Neovim 0.11+'s reserved LSP namespace (grD, grr, gri,
+      -- gra, grn, ...). Keeping the other operators on their defaults.
+      require('mini.operators').setup { replace = { prefix = '' } }
 
       -- Auto-pair brackets/quotes (replaces nvim-autopairs)
       require('mini.pairs').setup()
