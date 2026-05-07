@@ -31,6 +31,30 @@ local servers = {
       },
     },
   },
+
+  vtsls = {
+    settings = {
+      typescript = {
+        inlayHints = {
+          parameterNames = { enabled = 'literals' },
+          parameterTypes = { enabled = true },
+          variableTypes = { enabled = true },
+          propertyDeclarationTypes = { enabled = true },
+          functionLikeReturnTypes = { enabled = true },
+          enumMemberValues = { enabled = true },
+        },
+      },
+      javascript = {
+        inlayHints = {
+          parameterNames = { enabled = 'literals' },
+          parameterTypes = { enabled = true },
+          variableTypes = { enabled = true },
+          propertyDeclarationTypes = { enabled = true },
+          functionLikeReturnTypes = { enabled = true },
+        },
+      },
+    },
+  },
 }
 
 -- Nvim 0.10 vs 0.11 API shim; can drop once 0.10 support is dropped.
