@@ -48,7 +48,7 @@ return {
     workspaces = {
       {
         name = 'journal',
-        path = '~/Journal',
+        path = '~/.obsidian-arch/ArchJournal/',
       },
     },
 
@@ -72,6 +72,19 @@ return {
         -- Fills {{VALUE}} in fleeting/atomic templates (mirrors QuickAdd behavior)
         VALUE = function()
           return vim.fn.input 'Value: '
+        end,
+        -- {{date_long}} -> "Thursday, May 7, 2026". For daily notes, derives the
+        -- date from the note id (set to date_format); otherwise falls back to today.
+        date_long = function(ctx)
+          local t = os.time()
+          local id = ctx and ctx.partial_note and ctx.partial_note.id
+          if type(id) == 'string' then
+            local y, m, d = id:match '^(%d%d%d%d)-(%d%d)-(%d%d)$'
+            if y then
+              t = os.time { year = tonumber(y), month = tonumber(m), day = tonumber(d), hour = 12 }
+            end
+          end
+          return (os.date('%A, %B %e, %Y', t):gsub('  ', ' '))
         end,
       },
     },
