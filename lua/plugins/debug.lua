@@ -139,6 +139,7 @@ return {
         'delve',
         'deno',
         'codelldb', -- Rust debugger
+        'js-debug-adapter', -- vscode-js-debug for Node/Chrome
       },
     }
 
@@ -193,5 +194,41 @@ return {
 
     -- Setup Go debugging with nvim-dap-go
     require('dap-go').setup()
+
+    -- JavaScript / TypeScript via vscode-js-debug (installed by Mason as
+    -- 'js-debug-adapter'). Registers the 'pwa-node' adapter as a server
+    -- launched on demand by Mason's bundled node script.
+    local js_debug = vim.fn.stdpath('data')
+      .. '/mason/packages/js-debug-adapter/js-debug/src/dapDebugServer.js'
+    dap.adapters['pwa-node'] = {
+      type = 'server',
+      host = 'localhost',
+      port = '${port}',
+      executable = {
+        command = 'node',
+        args = { js_debug, '${port}' },
+      },
+    }
+
+    for _, lang in ipairs { 'javascript', 'typescript' } do
+      dap.configurations[lang] = {
+        {
+          type = 'pwa-node',
+          request = 'launch',
+          name = 'Launch current file (Node)',
+          program = '${file}',
+          cwd = '${workspaceFolder}',
+          sourceMaps = true,
+          skipFiles = { '<node_internals>/**', 'node_modules/**' },
+        },
+        {
+          type = 'pwa-node',
+          request = 'attach',
+          name = 'Attach to Node process',
+          processId = require('dap.utils').pick_process,
+          cwd = '${workspaceFolder}',
+        },
+      }
+    end
   end,
 }
