@@ -210,25 +210,44 @@ return {
       },
     }
 
-    for _, lang in ipairs { 'javascript', 'typescript' } do
-      dap.configurations[lang] = {
-        {
-          type = 'pwa-node',
-          request = 'launch',
-          name = 'Launch current file (Node)',
-          program = '${file}',
-          cwd = '${workspaceFolder}',
-          sourceMaps = true,
-          skipFiles = { '<node_internals>/**', 'node_modules/**' },
-        },
-        {
-          type = 'pwa-node',
-          request = 'attach',
-          name = 'Attach to Node process',
-          processId = require('dap.utils').pick_process,
-          cwd = '${workspaceFolder}',
-        },
-      }
-    end
+    local node_skip_files = { '<node_internals>/**', 'node_modules/**' }
+    local attach_config = {
+      type = 'pwa-node',
+      request = 'attach',
+      name = 'Attach to Node process',
+      processId = require('dap.utils').pick_process,
+      cwd = '${workspaceFolder}',
+    }
+
+    dap.configurations.javascript = {
+      {
+        type = 'pwa-node',
+        request = 'launch',
+        name = 'Launch current file (Node)',
+        program = '${file}',
+        cwd = '${workspaceFolder}',
+        sourceMaps = true,
+        skipFiles = node_skip_files,
+      },
+      attach_config,
+    }
+
+    -- TypeScript: load ts-node as a require hook so Node can run .ts source
+    -- directly. Equivalent to `pnpx ts-node ${file}` but flatter for the
+    -- debugger (one Node process, attaches cleanly). Requires ts-node in the
+    -- project's devDependencies.
+    dap.configurations.typescript = {
+      {
+        type = 'pwa-node',
+        request = 'launch',
+        name = 'Launch current TS file (ts-node)',
+        runtimeArgs = { '-r', 'ts-node/register' },
+        program = '${file}',
+        cwd = '${workspaceFolder}',
+        sourceMaps = true,
+        skipFiles = node_skip_files,
+      },
+      attach_config,
+    }
   end,
 }
