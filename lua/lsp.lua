@@ -57,6 +57,39 @@ local servers = {
   },
 }
 
+-- Follow a markdown `file://` link inside an LSP hover float, in place.
+-- Parses links of the form `[text](file:///path#L<line>%2C<col>)` (the format
+-- vtsls and other typescript servers emit), URL-decodes the path so pnpm-style
+-- `%40` segments resolve, then `:edit`s the target in the same float window.
+-- Setting `bufhidden=hide` on the hover buffer keeps it alive after the buffer
+-- switch so `<C-o>` (jumplist) can come back to it; `:edit` itself adds the
+-- leave-position to the jumplist automatically.
+local function follow_hover_link()
+  local line = vim.api.nvim_get_current_line()
+  local col = vim.api.nvim_win_get_cursor(0)[2] + 1
+
+  local idx = 1
+  while true do
+    local s, e, _, url = line:find('%[([^%]]+)%]%(([^)]+)%)', idx)
+    if not s then break end
+    if col >= s and col <= e then
+      if url:match('^file://') then
+        local path = vim.uri_decode(url:match('^file://([^#]+)'))
+        local lnum = tonumber(url:match('#L(%d+)')) or 1
+        local cnum = tonumber(url:match('#L%d+%%2C(%d+)') or url:match('#L%d+,(%d+)')) or 1
+        vim.bo.bufhidden = 'hide'
+        vim.cmd.edit(path)
+        pcall(vim.api.nvim_win_set_cursor, 0, { lnum, cnum - 1 })
+        return
+      end
+      vim.notify('Not a file:// link: ' .. url, vim.log.levels.INFO)
+      return
+    end
+    idx = e + 1
+  end
+  vim.notify('No link under cursor', vim.log.levels.WARN)
+end
+
 -- Nvim 0.10 vs 0.11 API shim; can drop once 0.10 support is dropped.
 local function client_supports_method(client, method, bufnr)
   if vim.fn.has 'nvim-0.11' == 1 then
@@ -118,6 +151,24 @@ function M.setup()
   vim.api.nvim_create_autocmd('LspAttach', {
     group = vim.api.nvim_create_augroup('custom-lsp-attach', { clear = true }),
     callback = on_attach,
+  })
+
+  -- Make file:// links inside LSP hover floats navigable. We hook FileType
+  -- (not BufWinEnter): vim.lsp.util.open_floating_preview sets filetype only
+  -- after the window opens, so BufWinEnter fires too early. By the time
+  -- FileType=markdown fires, the buffer is already buftype=nofile, so that
+  -- check is enough to filter out user-opened markdown files.
+  vim.api.nvim_create_autocmd('FileType', {
+    group = vim.api.nvim_create_augroup('lsp-hover-links', { clear = true }),
+    pattern = 'markdown',
+    callback = function(args)
+      if vim.bo[args.buf].buftype == 'nofile' then
+        vim.keymap.set('n', '<C-]>', follow_hover_link, {
+          buffer = args.buf,
+          desc = 'LSP: follow file:// link in hover',
+        })
+      end
+    end,
   })
 
   vim.diagnostic.config {
