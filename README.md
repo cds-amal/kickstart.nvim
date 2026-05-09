@@ -26,6 +26,30 @@ Leader: `,` · Local leader: `\`
 See `CLAUDE.md` for more detail on conventions and the reasoning behind the
 layout.
 
+## Hover as doc browser
+
+`K` opens an LSP hover. `K` again focuses the float (this also strips nvim's
+auto-close-on-buffer-swap autocmds, so the float survives navigation).
+Inside the focused float, `<C-]>` follows references in place:
+
+- Markdown `[text](file:///path#L<line>%2C<col>)` link (vtsls and other TS
+  servers emit these for cross-references): edits the target in the same
+  float window.
+- Any other identifier (e.g. `KeyPairSigner` inside `{@link}`): asks the LSP
+  for a definition, edits that in place.
+- `https?://` link: delegates to `xdg-open` / `open` / `cmd.exe start` via
+  `lua/url-opener.lua`.
+
+The float's per-window jumplist tracks the chain, so `<C-o>` and `<C-i>`
+walk every navigation back and forward. `:q` dismisses the whole stack.
+
+`KK` (not just one `K`) is required before chaining: without the focus step
+nvim's lifecycle autocmds close the float on the first buffer swap.
+
+Implementation: `lua/lsp.lua` (`follow_hover_link`, `edit_in_place`,
+`follow_lsp_definition`); the `FileType=markdown` autocmd in `M.setup()`
+installs the buffer-local `<C-]>` on hover floats.
+
 ## Requirements
 
 - Neovim 0.12+
