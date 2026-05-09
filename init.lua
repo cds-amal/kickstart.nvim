@@ -137,6 +137,14 @@ require('lazy').setup({
         { '<leader>s', group = '[S]earch' },
         { '<leader>t', group = '[T]oggle' },
         { '<leader>h', group = 'Git [H]unk', mode = { 'n', 'v' } },
+
+        -- Disambiguate vim's text-search g-keys from the LSP grX family.
+        -- The defaults that ship with which-key say "Goto local/global
+        -- declaration", which sounds LSP-ish; in reality these are pre-LSP
+        -- regex searches over the buffer text. Real go-to-definition lives
+        -- in grd / grD / grt (set buffer-locally in lua/lsp.lua on_attach).
+        { 'gd', desc = 'Goto local decl (vim regex; LSP is grd)' },
+        { 'gD', desc = 'Goto global decl (vim regex; LSP is grD)' },
       },
     },
   },

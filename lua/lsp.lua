@@ -64,30 +64,83 @@ local servers = {
 -- Setting `bufhidden=hide` on the hover buffer keeps it alive after the buffer
 -- switch so `<C-o>` (jumplist) can come back to it; `:edit` itself adds the
 -- leave-position to the jumplist automatically.
-local function follow_hover_link()
-  local line = vim.api.nvim_get_current_line()
-  local col = vim.api.nvim_win_get_cursor(0)[2] + 1
+-- Find the first markdown link `[text](url)` whose range contains `col` on
+-- `line`. Returns `{ s, e, text, url }` or nil. vim.iter:find short-circuits
+-- on the first match.
+local function find_link_at(line, col)
+  local pos = 1
+  return vim.iter(function()
+    local s, e, text, url = line:find('%[([^%]]+)%]%(([^)]+)%)', pos)
+    if not s then return nil end
+    pos = e + 1
+    return { s = s, e = e, text = text, url = url }
+  end):find(function(l) return col >= l.s and col <= l.e end)
+end
 
-  local idx = 1
-  while true do
-    local s, e, _, url = line:find('%[([^%]]+)%]%(([^)]+)%)', idx)
-    if not s then break end
-    if col >= s and col <= e then
-      if url:match('^file://') then
-        local path = vim.uri_decode(url:match('^file://([^#]+)'))
-        local lnum = tonumber(url:match('#L(%d+)')) or 1
-        local cnum = tonumber(url:match('#L%d+%%2C(%d+)') or url:match('#L%d+,(%d+)')) or 1
-        vim.bo.bufhidden = 'hide'
-        vim.cmd.edit(path)
-        pcall(vim.api.nvim_win_set_cursor, 0, { lnum, cnum - 1 })
-        return
-      end
-      vim.notify('Not a file:// link: ' .. url, vim.log.levels.INFO)
+-- Forward declaration so edit_in_place can reference follow_lsp_definition
+-- when re-binding <C-]> on the destination buffer.
+local follow_lsp_definition
+
+-- Edit `path` in the current window using the in-place navigation pattern:
+-- `bufhidden=hide` keeps the outgoing buffer alive so `<C-o>` can return to
+-- it, `:edit` records the leave-position in the jumplist, and we re-bind
+-- `<C-]>` on the destination buffer to follow_lsp_definition so the chain
+-- can continue (markdown link → .d.ts → {@link X} → another .d.ts → ...).
+local function edit_in_place(path, lnum, cnum)
+  vim.bo.bufhidden = 'hide'
+  vim.cmd.edit(path)
+  if lnum then
+    pcall(vim.api.nvim_win_set_cursor, 0, { lnum, (cnum or 1) - 1 })
+  end
+  vim.keymap.set('n', '<C-]>', function() follow_lsp_definition() end, {
+    buffer = 0,
+    desc = 'LSP: follow definition in place (chained)',
+  })
+end
+
+-- Ask the LSP for the definition of the symbol under cursor, then jump there
+-- via edit_in_place. Used inside the doc-browser float to follow `{@link X}`
+-- references and other in-source identifiers.
+follow_lsp_definition = function()
+  local clients = vim.lsp.get_clients { bufnr = 0, method = 'textDocument/definition' }
+  if #clients == 0 then
+    vim.notify('No LSP for definition under cursor', vim.log.levels.WARN)
+    return
+  end
+  local params = vim.lsp.util.make_position_params(0, clients[1].offset_encoding or 'utf-16')
+  vim.lsp.buf_request(0, 'textDocument/definition', params, function(err, result)
+    if err or not result or (type(result) == 'table' and vim.tbl_isempty(result)) then
+      vim.notify('No definition under cursor', vim.log.levels.WARN)
       return
     end
-    idx = e + 1
+    local loc = vim.islist(result) and result[1] or result
+    local uri = loc.uri or loc.targetUri
+    local range = loc.range or loc.targetSelectionRange
+    edit_in_place(vim.uri_to_fname(uri), range.start.line + 1, range.start.character + 1)
+  end)
+end
+
+local function follow_hover_link()
+  local link = find_link_at(
+    vim.api.nvim_get_current_line(),
+    vim.api.nvim_win_get_cursor(0)[2] + 1
+  )
+  if not link then
+    vim.notify('No link under cursor', vim.log.levels.WARN)
+    return
   end
-  vim.notify('No link under cursor', vim.log.levels.WARN)
+
+  local url = link.url
+  if url:match('^file://') then
+    local path = vim.uri_decode(url:match('^file://([^#]+)'))
+    local lnum = tonumber(url:match('#L(%d+)')) or 1
+    local cnum = tonumber(url:match('#L%d+%%2C(%d+)') or url:match('#L%d+,(%d+)')) or 1
+    edit_in_place(path, lnum, cnum)
+  elseif url:match('^https?://') then
+    require('url-opener').open(url)
+  else
+    vim.notify('Unsupported scheme: ' .. url, vim.log.levels.INFO)
+  end
 end
 
 -- Nvim 0.10 vs 0.11 API shim; can drop once 0.10 support is dropped.

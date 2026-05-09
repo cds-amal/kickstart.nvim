@@ -34,30 +34,18 @@ local function clean_buffer()
   end
 end
 
--- Function to open URLs in default browser
-local function opener()
-  if vim.fn.has('macunix') == 1 then
-    return { 'open' }
-  elseif vim.fn.has('win32') == 1 then
-    return { 'cmd.exe', '/c', 'start', '""' }
-  else
-    return { 'xdg-open' }
-  end
-end
+-- gx URL opener: extracts the URL/repo from <cfile>, then delegates to the
+-- shared platform opener. Recognizes http(s):// directly and `owner/repo`
+-- shorthand (expanded to github.com/owner/repo).
+local url_opener = require('url-opener')
 
 local function open_url()
   local url = vim.fn.expand('<cfile>')
-  local cmd = opener()
 
-  -- Check if the URL starts with http:// or https://
   if url:match('^https?://') then
-    vim.fn.jobstart(vim.list_extend(vim.deepcopy(cmd), { url }), { detach = true })
-    vim.notify('Opening URL: ' .. url)
-  -- Check if it's a GitHub repo in format 'owner/repo'
+    url_opener.open(url)
   elseif url:match('^[%w%-_%.]+/[%w%-_%.]+$') then
-    local github_url = 'https://github.com/' .. url
-    vim.fn.jobstart(vim.list_extend(vim.deepcopy(cmd), { github_url }), { detach = true })
-    vim.notify('Opening GitHub repo: ' .. github_url)
+    url_opener.open('https://github.com/' .. url, 'GitHub repo')
   else
     vim.notify('No valid URL or GitHub repo under cursor', vim.log.levels.WARN)
   end
