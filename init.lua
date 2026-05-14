@@ -390,6 +390,21 @@ require('lazy').setup({
       -- Auto-pair brackets/quotes (replaces nvim-autopairs)
       require('mini.pairs').setup()
 
+      -- Don't autopair `'` in Rust buffers. mini.pairs' neigh_pattern guard
+      -- (skip when preceded by a letter) handles English contractions, but a
+      -- lifetime `'a` is preceded by `<`, `&`, `,`, etc., so it slips through
+      -- and you get `<'info'>`. `'` is a global mapping, so the documented way
+      -- to revert it for a buffer is to shadow it with a buffer-local mapping
+      -- that just inserts the literal quote. (Costs nothing: the `closeopen`
+      -- autopair saved no keystrokes for char literals anyway.)
+      vim.api.nvim_create_autocmd('FileType', {
+        pattern = 'rust',
+        desc = "Disable mini.pairs ' autopairing for Rust lifetimes",
+        callback = function(args)
+          vim.keymap.set('i', "'", "'", { buffer = args.buf })
+        end,
+      })
+
       require('mini.comment').setup {
         options = {
           custom_commentstring = function(ref_position)
