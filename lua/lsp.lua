@@ -182,10 +182,38 @@ local function on_attach(event)
     end, '[T]oggle [C]olor previews')
   end
 
+  -- Toggle the CursorHold diagnostic auto-popup. Buffer-local for consistency
+  -- with the other <leader>t… toggles, but flips the global vim.g flag the
+  -- CursorHold autocmd reads.
+  map('<leader>td', function()
+    vim.g.diagnostic_float_auto = not vim.g.diagnostic_float_auto
+    -- When disabling, close any diagnostic float that's currently visible so
+    -- the toggle feels immediate.
+    if not vim.g.diagnostic_float_auto then
+      for _, w in ipairs(vim.api.nvim_list_wins()) do
+        if vim.api.nvim_win_get_config(w).relative ~= '' then
+          pcall(vim.api.nvim_win_close, w, true)
+        end
+      end
+    end
+    vim.notify('Diagnostic auto-popup: ' .. (vim.g.diagnostic_float_auto and 'on' or 'off'))
+  end, '[T]oggle [D]iagnostic auto-popup')
+
   -- Reposition diagnostic floats to the top-right so they don't overlap
   -- the cursor's column. CursorHold fires globally; configured here per-attach.
   vim.api.nvim_create_autocmd('CursorHold', {
     callback = function()
+      if not vim.g.diagnostic_float_auto then return end
+
+      -- Skip if another LSP float (hover, signature help, RustLsp explainError,
+      -- etc.) is already visible. vim.diagnostic.open_float routes through
+      -- vim.lsp.util.open_floating_preview, which closes the previous preview
+      -- before opening its own — so without this guard, a CursorHold tick
+      -- 250ms after ,rx clobbers the explainError window.
+      for _, w in ipairs(vim.api.nvim_list_wins()) do
+        if vim.api.nvim_win_get_config(w).relative ~= '' then return end
+      end
+
       local _, win = vim.diagnostic.open_float(nil, { focusable = false, source = 'if_many' })
       if not win then return end
 
@@ -201,6 +229,11 @@ local function on_attach(event)
 end
 
 function M.setup()
+  -- Default: auto-popup the diagnostic float on CursorHold. Toggled via <leader>td.
+  if vim.g.diagnostic_float_auto == nil then
+    vim.g.diagnostic_float_auto = true
+  end
+
   vim.api.nvim_create_autocmd('LspAttach', {
     group = vim.api.nvim_create_augroup('custom-lsp-attach', { clear = true }),
     callback = on_attach,
