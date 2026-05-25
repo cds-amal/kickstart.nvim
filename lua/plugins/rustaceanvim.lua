@@ -5,7 +5,14 @@ return {
   ft = { 'rust' },
   config = function()
     local codelldb_path = vim.fn.stdpath 'data' .. '/mason/bin/codelldb'
-    local liblldb_path = vim.fn.stdpath 'data' .. '/mason/packages/codelldb/extension/lldb/lib/liblldb.dylib'
+    local liblldb_ext = (vim.uv or vim.loop).os_uname().sysname == 'Darwin' and '.dylib' or '.so'
+    local liblldb_path = vim.fn.stdpath 'data' .. '/mason/packages/codelldb/extension/lldb/lib/liblldb' .. liblldb_ext
+
+    -- Resolve rustup's lldb helper scripts from the active toolchain so this
+    -- works across machines/triples without hard-coding a target like
+    -- `aarch64-apple-darwin`.
+    local rust_sysroot = vim.fn.trim(vim.fn.system 'rustc --print sysroot')
+    local rust_etc = rust_sysroot .. '/lib/rustlib/etc'
 
     -- LSP toggle state: 'rust-analyzer' or 'rs-commentary'
     vim.g.rust_lsp_active = 'rust-analyzer'
@@ -231,8 +238,8 @@ return {
         },
         configuration = {
           initCommands = {
-            'command script import ' .. vim.fn.expand '~/.rustup/toolchains/1.88.0-aarch64-apple-darwin/lib/rustlib/etc/lldb_lookup.py',
-            'command source ' .. vim.fn.expand '~/.rustup/toolchains/1.88.0-aarch64-apple-darwin/lib/rustlib/etc/lldb_commands',
+            'command script import ' .. rust_etc .. '/lldb_lookup.py',
+            'command source ' .. rust_etc .. '/lldb_commands',
           },
         },
       },
