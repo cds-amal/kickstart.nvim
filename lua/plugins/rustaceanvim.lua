@@ -88,7 +88,7 @@ return {
         hover_actions = {
           auto_focus = false,
         },
-        test_executor = 'background', -- or 'termopen' for terminal
+        test_executor = 'quickfix', -- always populates quickfix with stdout+stderr; needed for --nocapture output
       },
 
       -- LSP configuration
@@ -173,6 +173,9 @@ return {
 
         settings = {
           ['rust-analyzer'] = {
+            runnables = {
+              extraTestBinaryArgs = { '--nocapture' },
+            },
             completion = {
               callable = {
                 snippets = 'fill_arguments',
