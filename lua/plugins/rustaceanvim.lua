@@ -103,6 +103,25 @@ return {
             vim.keymap.set('n', keys, func, { buffer = bufnr, desc = 'Rust: ' .. desc })
           end
 
+          -- Expand macro (with fallback to vim.pretty_print for inspection)
+          map('<leader>re', function()
+            vim.lsp.buf_request(bufnr, 'rust-analyzer/expandMacro', vim.lsp.util.make_position_params(0, client.offset_encoding), function(_, result)
+              if not result or not result.expansion then
+                vim.notify('No macro expansion available', vim.log.levels.WARN)
+                return
+              end
+
+              -- Open right split with expanded macro
+              vim.cmd 'vsplit'
+              local buf = vim.api.nvim_create_buf(true, true)
+              vim.api.nvim_win_set_buf(0, buf)
+              local lines = vim.split(result.expansion, '\n')
+              vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+              vim.api.nvim_buf_set_option(buf, 'filetype', 'rust')
+              vim.api.nvim_buf_set_option(buf, 'modifiable', false)
+            end)
+          end, 'Expand Macro')
+
           -- Rust-specific keymaps
           map('<leader>rc', function()
             vim.cmd.RustLsp 'codeAction'
@@ -116,9 +135,6 @@ return {
           map('<leader>rr', function()
             vim.cmd.RustLsp 'runnables'
           end, 'Runnables')
-          map('<leader>re', function()
-            vim.cmd.RustLsp 'expandMacro'
-          end, 'Expand Macro')
           map('<leader>rp', function()
             vim.cmd.RustLsp 'rebuildProcMacros'
           end, 'Rebuild Proc Macros')
