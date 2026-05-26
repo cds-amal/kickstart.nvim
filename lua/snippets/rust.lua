@@ -98,19 +98,16 @@ return {
     )
   ),
 
-  -- `pt` -> full proptest! { ... } block with one test
+  -- `ptmod` -> empty proptest! { ... } wrapper (use `ptfn` inside)
   s(
-    'pt',
+    'ptmod',
     fmt(
       [[
         proptest! {{
-            #[test]
-            fn {}({} in {}) {{
-                {}
-            }}
+            {}
         }}
       ]],
-      { i(1, 'prop_name'), i(2, 'x'), i(3, 'any::<u32>()'), i(0) }
+      { i(0) }
     )
   ),
 
