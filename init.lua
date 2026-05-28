@@ -250,10 +250,10 @@ require('lazy').setup({
           -- },
         },
         config = function()
-          local ls = require('luasnip')
+          local ls = require 'luasnip'
           -- Load custom Lua snippets after LuaSnip is initialized
           vim.schedule(function()
-            require('luasnip.loaders.from_lua').lazy_load({ paths = '~/.config/nvim/lua/snippets' })
+            require('luasnip.loaders.from_lua').lazy_load { paths = '~/.config/nvim/lua/snippets' }
           end)
         end,
       },
@@ -345,6 +345,9 @@ require('lazy').setup({
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
       vim.cmd.colorscheme 'tokyonight-night'
+      -- Increase comment contrast: brighter and bold
+      -- vim.api.nvim_set_hl(0, 'Comment', { fg = '#7aa2f7', bold = true })
+      -- vim.api.nvim_set_hl(0, 'Comment', { fg = '#7aa2f7' })
     end,
   },
 
