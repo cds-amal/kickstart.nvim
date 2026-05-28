@@ -130,6 +130,7 @@ return {
             vim.cmd.RustLsp 'debuggables'
           end, 'Debuggables')
           map('<leader>rt', function()
+            vim.env.RUST_BACKTRACE = '1'
             vim.cmd.RustLsp 'testables'
           end, 'Testables')
           map('<leader>rr', function()
