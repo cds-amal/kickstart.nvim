@@ -51,14 +51,16 @@ return {
       -- sidesteps PlantUML's deflate codec: we just hex the buffer with xxd.
       -- Caveat: this is a GET, so very large diagrams can hit URL-length limits.
       --
-      -- We ask the server for ASCII (/txt) and show it in a split via the
-      -- `buffer` renderer: no image protocol needed (works through tmux), and
-      -- the buffer renderer rewrites the split on every render, so it updates
-      -- live on :w. For a real rasterized image instead, point this at /png/~h
-      -- and use the `image_nvim` renderer (needs the image.nvim plugin).
+      -- We ask the server for a PNG (/png) and display it in a split via the
+      -- `image_nvim` renderer (image.nvim + ghostty's kitty graphics through
+      -- tmux). Unlike the ASCII (/txt) backend, the graphical backend supports
+      -- the full diagram (notes, skinparam, composition); /txt throws server
+      -- side 500s on `note` blocks. The server also returns HTTP 200 for PNG
+      -- even on diagram errors (rendered as an error image), so curl -f never
+      -- trips. ext = 'png' makes image.nvim treat the temp file as a PNG.
       plantuml = {
-        name = 'plantuml_server_txt',
-        renderer = { type = 'buffer', opts = { split_cmd = 'vsplit' } },
+        name = 'plantuml_server_png',
+        renderer = { type = 'image_nvim', opts = { ext = 'png', split_cmd = 'vsplit' } },
       },
     },
 
@@ -73,11 +75,11 @@ return {
       },
 
       -- xxd reads the buffer from stdin (the subshell inherits sh's stdin), and
-      -- curl asks the server for the diagram as Unicode ASCII art. Swap /txt for
-      -- /svg or /png (with a command or image_nvim renderer) for a real image.
-      plantuml_server_txt = {
+      -- curl asks the server for a PNG. Swap /png for /txt (buffer renderer) for
+      -- ASCII, or /svg (command renderer) to open it in a browser.
+      plantuml_server_png = {
         command = 'sh',
-        args = { '-c', [[curl -sf "http://localhost:8080/txt/~h$(xxd -p | tr -d '\n')"]] },
+        args = { '-c', [[curl -sf "http://localhost:8080/png/~h$(xxd -p | tr -d '\n')"]] },
         stdin = true,
         stdout = true,
       },
