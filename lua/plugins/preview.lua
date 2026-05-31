@@ -26,6 +26,18 @@ return {
   cmd = 'PreviewFile',
   keys = {
     { '<localleader>p', '<cmd>PreviewFile<cr>', desc = 'Preview: render current file' },
+    -- Collapse to a single window first, then render: image.nvim sizes the image
+    -- at render time and does not rescale when the window resizes, so clearing
+    -- stale splits and re-rendering is the reliable way to get a maximized view.
+    {
+      '<localleader>P',
+      function()
+        vim.cmd.only()
+        vim.cmd.PreviewFile()
+      end,
+      ft = 'plantuml',
+      desc = 'Preview: render maximized (single window first)',
+    },
   },
   opts = {
     previewers_by_ft = {
@@ -55,12 +67,24 @@ return {
       -- `image_nvim` renderer (image.nvim + ghostty's kitty graphics through
       -- tmux). Unlike the ASCII (/txt) backend, the graphical backend supports
       -- the full diagram (notes, skinparam, composition); /txt throws server
-      -- side 500s on `note` blocks. The server also returns HTTP 200 for PNG
+      -- side 500s on `note` blocks. The server also returns HTTP 200 for SVG
       -- even on diagram errors (rendered as an error image), so curl -f never
-      -- trips. ext = 'png' makes image.nvim treat the temp file as a PNG.
+      -- trips.
+      --
+      -- We fetch SVG (not PNG) and let image.nvim rasterize it via librsvg
+      -- (ImageMagick's svg delegate) at the size it actually needs: the kitty
+      -- protocol only draws raster, so SVG buys us on-demand rasterization that
+      -- stays crisp at any window size, instead of upscaling a fixed-res PNG.
+      -- ext = 'svg' is what tells image.nvim to run it through that delegate.
+      --
+      -- split_cmd is a vertical split, so the source stays visible beside the
+      -- render. image.nvim fits the image to the window preserving aspect ratio;
+      -- since the window is the only size knob, <localleader>P collapses to a
+      -- single window first and re-renders for a bigger view. (A horizontal
+      -- 'botright split' gives wide diagrams more width, but stacks the panes.)
       plantuml = {
-        name = 'plantuml_server_png',
-        renderer = { type = 'image_nvim', opts = { ext = 'png', split_cmd = 'vsplit' } },
+        name = 'plantuml_server_svg',
+        renderer = { type = 'image_nvim', opts = { ext = 'svg', split_cmd = 'vsplit' } },
       },
     },
 
@@ -75,11 +99,11 @@ return {
       },
 
       -- xxd reads the buffer from stdin (the subshell inherits sh's stdin), and
-      -- curl asks the server for a PNG. Swap /png for /txt (buffer renderer) for
-      -- ASCII, or /svg (command renderer) to open it in a browser.
-      plantuml_server_png = {
+      -- curl asks the server for SVG. Swap /svg for /png (also image_nvim) or
+      -- /txt (buffer renderer, ASCII; but it 500s on note blocks).
+      plantuml_server_svg = {
         command = 'sh',
-        args = { '-c', [[curl -sf "http://localhost:8080/png/~h$(xxd -p | tr -d '\n')"]] },
+        args = { '-c', [[curl -sf "http://localhost:8080/svg/~h$(xxd -p | tr -d '\n')"]] },
         stdin = true,
         stdout = true,
       },
