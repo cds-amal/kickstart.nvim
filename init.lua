@@ -255,6 +255,18 @@ require('lazy').setup({
           vim.schedule(function()
             require('luasnip.loaders.from_lua').lazy_load { paths = '~/.config/nvim/lua/snippets' }
           end)
+
+          -- Cycle choice nodes. blink owns <Tab>/<S-Tab> for jumping, so these
+          -- only move *between choices* on the active choiceNode (used by the
+          -- recursive `errc` snippet to spawn the next variant/msg pair).
+          -- <C-h/j/k/l> are taken by tmux-navigator; <C-f>/<C-b> are free in
+          -- insert and select mode.
+          vim.keymap.set({ 'i', 's' }, '<C-f>', function()
+            if ls.choice_active() then ls.change_choice(1) end
+          end, { desc = 'LuaSnip: next choice' })
+          vim.keymap.set({ 'i', 's' }, '<C-b>', function()
+            if ls.choice_active() then ls.change_choice(-1) end
+          end, { desc = 'LuaSnip: previous choice' })
         end,
       },
       'folke/lazydev.nvim',
