@@ -1,4 +1,4 @@
-local ls = require('luasnip')
+local ls = require 'luasnip'
 local s = ls.snippet
 local i = ls.insert_node
 local fmt = require('luasnip.extras.fmt').fmt
@@ -16,4 +16,7 @@ return {
       { i(0) }
     )
   ),
+
+  -- `uri` -> markdown link: [text](url)
+  s('uri', fmt('[{}]({})', { i(1), i(0) })),
 }
