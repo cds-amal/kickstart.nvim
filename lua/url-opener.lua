@@ -5,7 +5,11 @@
 
 local M = {}
 
-local function opener()
+-- The OS default-handler command, as an argv list a URL or file path can be
+-- appended to. Exposed (not just used internally by M.open) so other callers
+-- that need the handler argv can reuse it: preview.nvim, for one, hands temp
+-- files to the browser this way.
+function M.cmd()
   if vim.fn.has('macunix') == 1 then
     return { 'open' }
   elseif vim.fn.has('win32') == 1 then
@@ -14,6 +18,8 @@ local function opener()
     return { 'xdg-open' }
   end
 end
+
+local opener = M.cmd
 
 -- Open `url` with the platform handler, then notify. `label` customizes the
 -- notification prefix ("Opening <label>: <url>"); defaults to "URL".

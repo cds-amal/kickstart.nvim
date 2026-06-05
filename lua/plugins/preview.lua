@@ -9,7 +9,8 @@
 -- This config deviates from the upstream README example on purpose: the example
 -- assumes pdfroff/wkhtmltopdf/zathura/feh and a local plantuml jar, none of
 -- which are installed here. What we actually have: pandoc, groff (+gropdf),
--- curl, xxd, a browser via xdg-open, and a PlantUML server on :8080. So:
+-- curl, xxd, a browser via the OS default handler, and a PlantUML server on
+-- :8080. So:
 --   markdown -> pandoc to standalone HTML -> browser
 --   groff    -> groff_ms_pdf (works as-is) -> browser
 --   plantuml -> curl the :8080 server (hex transcoding) -> browser
@@ -17,6 +18,12 @@
 -- N.B. The `command` renderer launches the viewer exactly once (it guards on a
 -- `started` flag); with render_on_write = true, later saves silently overwrite
 -- the temp file but do NOT reload the tab. Refresh the browser to see updates.
+
+-- "Open in the default handler" is platform-specific (open / xdg-open / start);
+-- reuse the same resolver gx uses rather than hardcoding xdg-open, which only
+-- exists on Linux and ENOENTs everywhere else.
+local open_cmd = require('url-opener').cmd()
+
 return {
   'https://gitlab.com/itaranto/preview.nvim',
   version = '*',
@@ -43,19 +50,19 @@ return {
     previewers_by_ft = {
       -- pandoc has no usable PDF engine here (pdfroff and wkhtmltopdf are both
       -- missing), so we route markdown through HTML instead of the predefined
-      -- pandoc_pdfroff previewer. ext = 'html' makes xdg-open hand the temp file
-      -- to the browser as HTML rather than as text/plain.
+      -- pandoc_pdfroff previewer. ext = 'html' makes the handler hand the temp
+      -- file to the browser as HTML rather than as text/plain.
       markdown = {
         name = 'pandoc_html',
-        renderer = { type = 'command', opts = { cmd = { 'xdg-open' }, ext = 'html' } },
+        renderer = { type = 'command', opts = { cmd = open_cmd, ext = 'html' } },
       },
 
       -- groff_ms_pdf is the stock previewer (`groff -Tpdf`); groff + gropdf are
       -- installed so it works untouched. Only the viewer changed: no zathura, so
-      -- xdg-open (Chrome is the registered application/pdf handler) opens it.
+      -- the OS default handler (Chrome is the registered application/pdf one) opens it.
       groff = {
         name = 'groff_ms_pdf',
-        renderer = { type = 'command', opts = { cmd = { 'xdg-open' }, ext = 'pdf' } },
+        renderer = { type = 'command', opts = { cmd = open_cmd, ext = 'pdf' } },
       },
 
       -- No local `plantuml` binary, but a PlantUML server is up on :8080. The
@@ -101,9 +108,28 @@ return {
       -- xxd reads the buffer from stdin (the subshell inherits sh's stdin), and
       -- curl asks the server for SVG. Swap /svg for /png (also image_nvim) or
       -- /txt (buffer renderer, ASCII; but it 500s on note blocks).
+      --
+      -- Fail gracefully when the server is down: `curl -sf` exits non-zero on a
+      -- refused connection (7) or HTTP error (22), and the plugin turns any
+      -- non-zero previewer exit into a hard assert in a vim.system callback (see
+      -- preview/job.lua) which surfaces as a scheduled-callback traceback. So we
+      -- catch the failure (`|| svg=...`) and substitute a small valid SVG that
+      -- says what went wrong; image.nvim renders that in the preview pane and the
+      -- command still exits 0, so no traceback. (We keep `-f` so HTTP 500s from a
+      -- live-but-unhappy server also fall back instead of rendering an error PNG.)
       plantuml_server_svg = {
         command = 'sh',
-        args = { '-c', [[curl -sf "http://localhost:8080/svg/~h$(xxd -p | tr -d '\n')"]] },
+        args = {
+          '-c',
+          [[hex=$(xxd -p | tr -d '\n'); ]]
+            .. [[svg=$(curl -sf "http://localhost:8080/svg/~h$hex") || ]]
+            .. [[svg='<svg xmlns="http://www.w3.org/2000/svg" width="520" height="96">]]
+            .. [[<rect width="100%" height="100%" fill="#1e1e1e"/>]]
+            .. [[<text x="16" y="40" font-family="monospace" font-size="15" fill="#e06c75">PlantUML server unavailable</text>]]
+            .. [[<text x="16" y="66" font-family="monospace" font-size="12" fill="#888888">expected at http://localhost:8080</text>]]
+            .. [[</svg>'; ]]
+            .. [[printf '%s' "$svg"]],
+        },
         stdin = true,
         stdout = true,
       },
