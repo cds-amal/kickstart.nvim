@@ -2,7 +2,7 @@
 -- Lazy-load on the commands and keymaps; the plugin's setup() defines the real
 -- mappings (lazy feeds the key back after loading).
 return {
-  dir = '~/dev/nvim-plugins/truth-table.nvim',
+  'cds-io/truth-table.nvim',
   cmd = {
     'TruthTable',
     'TruthTableExpand',
