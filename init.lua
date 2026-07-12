@@ -36,7 +36,8 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 -- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
 -- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
 
--- NOTE: <C-hjkl> window navigation is handled by vim-tmux-navigator
+-- NOTE: <C-hjkl> window navigation is handled by vim-herdr-navigation
+-- (falls back to vim-tmux-navigator under tmux); see plugins/tmux-navigator.lua
 
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
@@ -259,7 +260,7 @@ require('lazy').setup({
           -- Cycle choice nodes. blink owns <Tab>/<S-Tab> for jumping, so these
           -- only move *between choices* on the active choiceNode (used by the
           -- recursive `errc` snippet to spawn the next variant/msg pair).
-          -- <C-h/j/k/l> are taken by tmux-navigator; <C-f>/<C-b> are free in
+          -- <C-h/j/k/l> are taken by herdr/tmux navigation; <C-f>/<C-b> are free in
           -- insert and select mode.
           vim.keymap.set({ 'i', 's' }, '<C-f>', function()
             if ls.choice_active() then ls.change_choice(1) end
