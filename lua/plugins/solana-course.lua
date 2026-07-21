@@ -24,7 +24,6 @@ return {
     dir = '~/dev/solana-rust-vscode-course/neovim',
     dependencies = {
       'cds-io/kata-framework',
-      'MeanderingProgrammer/render-markdown.nvim',
     },
   },
 }
