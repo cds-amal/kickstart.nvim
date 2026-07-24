@@ -15,9 +15,12 @@
 --   groff    -> groff_ms_pdf (works as-is) -> browser
 --   plantuml -> curl the :8080 server (hex transcoding) -> browser
 --
--- N.B. The `command` renderer launches the viewer exactly once (it guards on a
--- `started` flag); with render_on_write = true, later saves silently overwrite
--- the temp file but do NOT reload the tab. Refresh the browser to see updates.
+-- N.B. The `command` renderer's `started` guard is not the once-per-session
+-- latch it looks like: it is cleared in the viewer command's exit callback
+-- (renderers/command.lua), and `xdg-open` / `open` return as soon as they have
+-- handed the file to the browser. So the guard is already false by the next
+-- write, and on-write rendering means a fresh browser tab on every :w. That is
+-- why render_on_write is left off and we arm our own gated autocmd below.
 
 -- "Open in the default handler" is platform-specific (open / xdg-open / start);
 -- reuse the same resolver gx uses rather than hardcoding xdg-open, which only
@@ -135,8 +138,29 @@ return {
       },
     },
 
-    -- Re-render on every :w. The autocmd is buffer-content driven, so it only
-    -- fires the previewer for the filetypes mapped above.
-    render_on_write = true,
+    -- Off: we register an equivalent autocmd in `config` so it can be toggled.
+    render_on_write = false,
   },
+
+  config = function(_, opts)
+    require('preview').setup(opts)
+
+    -- Same behavior as the plugin's render_on_write, but gated on a flag so it
+    -- can be turned on for a session where re-rendering is what you want and
+    -- stay out of the way otherwise. :PreviewFile is a no-op for filetypes with
+    -- no entry in previewers_by_ft, so the '*' pattern costs nothing.
+    vim.api.nvim_create_autocmd('BufWritePost', {
+      group = vim.api.nvim_create_augroup('PreviewOnWrite', {}),
+      callback = function()
+        if vim.g.preview_on_write then
+          vim.cmd.PreviewFile()
+        end
+      end,
+    })
+
+    vim.api.nvim_create_user_command('PreviewOnWriteToggle', function()
+      vim.g.preview_on_write = not vim.g.preview_on_write
+      vim.notify('Preview on write: ' .. (vim.g.preview_on_write and 'on' or 'off'))
+    end, { desc = 'Preview: toggle re-render on write' })
+  end,
 }
