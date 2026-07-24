@@ -35,12 +35,12 @@ return {
   ft = { 'markdown', 'groff', 'plantuml' },
   cmd = 'PreviewFile',
   keys = {
-    { '<localleader>p', '<cmd>PreviewFile<cr>', desc = 'Preview: render current file' },
+    { '<leader>pp', '<cmd>PreviewFile<cr>', desc = 'Preview: render current file' },
     -- Collapse to a single window first, then render: image.nvim sizes the image
     -- at render time and does not rescale when the window resizes, so clearing
     -- stale splits and re-rendering is the reliable way to get a maximized view.
     {
-      '<localleader>P',
+      '<leader>pm',
       function()
         vim.cmd.only()
         vim.cmd.PreviewFile()
@@ -48,6 +48,7 @@ return {
       ft = 'plantuml',
       desc = 'Preview: render maximized (single window first)',
     },
+    { '<leader>pw', '<cmd>PreviewOnWriteToggle<cr>', desc = 'Preview: toggle re-render on write' },
   },
   opts = {
     previewers_by_ft = {
@@ -89,7 +90,7 @@ return {
       --
       -- split_cmd is a vertical split, so the source stays visible beside the
       -- render. image.nvim fits the image to the window preserving aspect ratio;
-      -- since the window is the only size knob, <localleader>P collapses to a
+      -- since the window is the only size knob, <leader>pm collapses to a
       -- single window first and re-renders for a bigger view. (A horizontal
       -- 'botright split' gives wide diagrams more width, but stacks the panes.)
       plantuml = {
