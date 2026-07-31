@@ -263,10 +263,14 @@ require('lazy').setup({
           -- <C-h/j/k/l> are taken by herdr/tmux navigation; <C-f>/<C-b> are free in
           -- insert and select mode.
           vim.keymap.set({ 'i', 's' }, '<C-f>', function()
-            if ls.choice_active() then ls.change_choice(1) end
+            if ls.choice_active() then
+              ls.change_choice(1)
+            end
           end, { desc = 'LuaSnip: next choice' })
           vim.keymap.set({ 'i', 's' }, '<C-b>', function()
-            if ls.choice_active() then ls.change_choice(-1) end
+            if ls.choice_active() then
+              ls.change_choice(-1)
+            end
           end, { desc = 'LuaSnip: previous choice' })
         end,
       },
@@ -394,6 +398,9 @@ require('lazy').setup({
           },
           ['r'] = {
             output = { left = '```rust\n', right = '\n```' },
+          },
+          ['C'] = {
+            output = { left = '/*\n', right = '\n*/' },
           },
         },
       }
