@@ -82,6 +82,42 @@ return {
       end
     end, {})
 
+    -- rust-analyzer only reports file:// links into target/doc (the cargo-doc
+    -- generated pages, the only docs that exist for workspace crates) when the
+    -- client advertises the experimental localDocs capability. With that on,
+    -- the experimental/externalDocs response is { web?, local? } instead of a
+    -- bare URL string, so open_url has to handle both shapes.
+    local function open_docs_url(url)
+      local open = require('rustaceanvim.os').open_url
+      if type(url) == 'string' then
+        open(url)
+        return
+      end
+      local web, local_url = url.web, url['local']
+      local local_path = local_url and vim.uri_to_fname(local_url:gsub('#.*$', ''))
+      if local_path and vim.uv.fs_stat(local_path) then
+        open(local_url)
+      elseif web then
+        open(web)
+      elseif local_url then
+        -- A workspace symbol whose docs haven't been generated yet: build
+        -- them, then open. --no-deps keeps the build short enough to wait for.
+        local root = vim.fs.root(0, 'Cargo.toml') or vim.fn.getcwd()
+        vim.notify('Docs not generated yet; running cargo doc --no-deps ...', vim.log.levels.INFO)
+        vim.system({ 'cargo', 'doc', '--no-deps' }, { cwd = root }, function(out)
+          vim.schedule(function()
+            if out.code == 0 then
+              open(local_url)
+            else
+              vim.notify('cargo doc failed:\n' .. (out.stderr or ''), vim.log.levels.ERROR)
+            end
+          end)
+        end)
+      else
+        vim.notify('No documentation found for the symbol under the cursor', vim.log.levels.WARN)
+      end
+    end
+
     vim.g.rustaceanvim = {
       -- Plugin configuration
       tools = {
@@ -89,10 +125,17 @@ return {
           auto_focus = false,
         },
         test_executor = 'quickfix', -- always populates quickfix with stdout+stderr; needed for --nocapture output
+        open_url = open_docs_url,
       },
 
       -- LSP configuration
       server = {
+        -- Merged over rustaceanvim's default capabilities; see open_docs_url.
+        capabilities = {
+          experimental = {
+            localDocs = true,
+          },
+        },
         auto_attach = function()
           -- Only auto-attach rust-analyzer if it's the active LSP
           return vim.g.rust_lsp_active == 'rust-analyzer'
@@ -157,6 +200,10 @@ return {
           map('<leader>rg', function()
             vim.cmd.RustLsp 'openDocs'
           end, 'Open Docs')
+          -- Alt+Click a symbol to open its docs in the browser. Alt rather
+          -- than Ctrl: Ctrl+Click is already go-to-definition. The leading
+          -- <LeftMouse> moves the cursor to the click target first.
+          vim.keymap.set('n', '<M-LeftMouse>', '<LeftMouse><Cmd>RustLsp openDocs<CR>', { buffer = bufnr, desc = 'Rust: Open Docs (Alt+Click)' })
           map('<leader>rj', function()
             vim.cmd.RustLsp 'joinLines'
           end, 'Join Lines')
