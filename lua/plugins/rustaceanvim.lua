@@ -118,6 +118,44 @@ return {
       end
     end
 
+    -- rustaceanvim gives us two halves of what ,rt should do: `run` resolves
+    -- the runnable at the cursor but doesn't care whether it's a test (in
+    -- `fn main` it would cheerfully `cargo run`), and `testables` filters to
+    -- tests but always prompts. Filtering to testables *before* the cursor
+    -- lookup gives both: an exact hit runs, anything else falls through to
+    -- the picker.
+    --
+    -- Matches rustaceanvim's own is_testable: rust-analyzer labels a runnable
+    -- as a test by its first cargo arg, which covers `test` and `test-mod`.
+    local function is_testable(runnable)
+      local cargo_args = runnable.args and runnable.args.cargoArgs or {}
+      return #cargo_args > 0 and vim.startswith(cargo_args[1], 'test')
+    end
+
+    local function test_at_cursor()
+      vim.env.RUST_BACKTRACE = '1'
+      local params = {
+        textDocument = vim.lsp.util.make_text_document_params(0),
+        position = nil, -- ask for every runnable; we do our own cursor filtering
+      }
+      vim.lsp.buf_request(0, 'experimental/runnables', params, function(_, result)
+        local runnables = require('rustaceanvim.runnables')
+        local testables = vim.tbl_filter(is_testable, result or {})
+        -- get_runnable_at_cursor_position prefers a specific test over the
+        -- enclosing test-mod, so this only picks the module when the cursor
+        -- sits between test functions.
+        local choice = #testables > 0 and runnables.get_runnable_at_cursor_position(testables) or nil
+        if not choice then
+          vim.cmd.RustLsp 'testables'
+          return
+        end
+        runnables.run_command(choice, testables)
+        local cached = require('rustaceanvim.cached_commands')
+        cached.set_last_testable(choice, testables)
+        cached.set_last_runnable(choice, testables)
+      end)
+    end
+
     vim.g.rustaceanvim = {
       -- Plugin configuration
       tools = {
@@ -172,10 +210,15 @@ return {
           map('<leader>rd', function()
             vim.cmd.RustLsp 'debuggables'
           end, 'Debuggables')
-          map('<leader>rt', function()
+          map('<leader>rt', test_at_cursor, 'Test at Cursor')
+          map('<leader>rT', function()
             vim.env.RUST_BACKTRACE = '1'
             vim.cmd.RustLsp 'testables'
-          end, 'Testables')
+          end, 'Testables (pick)')
+          map('<leader>r.', function()
+            vim.env.RUST_BACKTRACE = '1'
+            vim.cmd.RustLsp { 'run', bang = true }
+          end, 'Rerun Last')
           map('<leader>rr', function()
             vim.cmd.RustLsp 'runnables'
           end, 'Runnables')
