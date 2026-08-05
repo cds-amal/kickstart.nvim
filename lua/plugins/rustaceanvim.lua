@@ -56,7 +56,12 @@ return {
         return
       end
 
-      local web, local_url = url.web, url['local']
+      -- rust-analyzer sends JSON null for a half it cannot resolve, and that
+      -- decodes to vim.NIL, which is truthy in Lua. Testing the type rather
+      -- than truthiness is what keeps `local_url:gsub` from indexing userdata.
+      local web = type(url.web) == 'string' and url.web or nil
+      local local_url = type(url['local']) == 'string' and url['local'] or nil
+
       local local_path = local_url and vim.uri_to_fname(local_url:gsub('#.*$', ''))
       if local_path and vim.uv.fs_stat(local_path) then
         open(local_url)
