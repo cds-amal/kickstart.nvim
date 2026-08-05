@@ -187,7 +187,15 @@ return {
         hover_actions = {
           auto_focus = false,
         },
-        test_executor = 'quickfix', -- always populates quickfix with stdout+stderr; needed for --nocapture output
+        -- cargo-quickfix reimplements the stock 'quickfix' executor with a
+        -- cargo-specific errorformat and readable rendering. Quickfix is the
+        -- one executor style that makes --nocapture output (dbg! lines,
+        -- panic locations) jumpable, which is why it stays. Should the
+        -- presentation ever grate, the swaps are one line: 'termopen' is
+        -- cargo's own colored output in a terminal split (nothing jumpable),
+        -- 'background' a pass/fail notification plus inline diagnostics on
+        -- failures, 'neotest' the full test-tree UI.
+        test_executor = require('cargo-quickfix').executor,
         open_url = open_docs_url,
       },
 
