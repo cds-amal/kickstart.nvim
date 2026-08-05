@@ -11,7 +11,7 @@
 -- Volume is the lever this module does not touch: a whole-suite run is
 -- thousands of lines however it renders, where a test resolved at the
 -- cursor is thirty ("running 1 test"). For pruning a big list in place,
--- `:packadd cfilter` then `:Cfilter! /ok$/` drops every passing line.
+-- cfilter is loaded below: `:Cfilter! /ok$/` drops every passing line.
 
 local M = {}
 
@@ -133,5 +133,8 @@ M.executor = {
 }
 
 vim.o.quickfixtextfunc = "v:lua.require'cargo-quickfix'.qf_text"
+
+-- Ships with the nvim runtime; gives :Cfilter/:Lfilter for pruning lists.
+vim.cmd.packadd 'cfilter'
 
 return M
