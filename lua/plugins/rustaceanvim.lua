@@ -15,11 +15,14 @@ return {
     -- `aarch64-apple-darwin`.
     local rust_etc = vim.fn.trim(vim.fn.system 'rustc --print sysroot') .. '/lib/rustlib/etc'
 
-    -- Workspace members keyed by their doc-directory name, which is the package
-    -- name with hyphens turned into underscores (surfpool-types -> surfpool_types).
-    -- `cargo metadata --no-deps` only reads manifests, so it costs ~20ms and is
-    -- cached for the session; it runs at most once per workspace, and only on
-    -- the path where a local doc page turned out to be missing.
+    -- Workspace members as { doc_directory_name = package_name }. cargo turns
+    -- hyphens into underscores for the doc directory (surfpool-types becomes
+    -- surfpool_types), and we need the round trip back: a doc path tells us
+    -- which crate to name in `cargo doc -p`.
+    --
+    -- `cargo metadata --no-deps` only reads manifests, so it costs ~50ms on a
+    -- nine-member workspace, is cached for the session, and is reached only
+    -- when a local doc page turned out to be missing.
     local members_by_root = {}
     local function workspace_members(root)
       if not members_by_root[root] then
@@ -28,7 +31,7 @@ return {
         local ok, meta = pcall(vim.json.decode, out.stdout or '')
         if out.code == 0 and ok then
           for _, pkg in ipairs(meta.packages or {}) do
-            members[(pkg.name:gsub('%-', '_'))] = true
+            members[(pkg.name:gsub('%-', '_'))] = pkg.name
           end
         end
         members_by_root[root] = members
@@ -74,9 +77,13 @@ return {
         root, crate = local_path:match '^(.*)/target/doc/([^/]+)/'
       end
 
-      if root and workspace_members(root)[crate] then
-        vim.notify(('Docs for %s not built yet; running cargo doc --no-deps ...'):format(crate), vim.log.levels.INFO)
-        vim.system({ 'cargo', 'doc', '--no-deps' }, { cwd = root }, function(out)
+      -- Scoped with -p: at a virtual workspace root, a bare `cargo doc` documents
+      -- every member and compiles the whole dependency tree with it, which for a
+      -- nine-crate Solana workspace is minutes. One crate is seconds.
+      local package = root and workspace_members(root)[crate] or nil
+      if package then
+        vim.notify(('Docs for %s not built yet; running cargo doc -p %s ...'):format(crate, package), vim.log.levels.INFO)
+        vim.system({ 'cargo', 'doc', '--no-deps', '-p', package }, { cwd = root }, function(out)
           vim.schedule(function()
             if out.code == 0 and vim.uv.fs_stat(local_path) then
               open(local_url)
