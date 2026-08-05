@@ -539,6 +539,7 @@ require('lazy').setup({
 
 require 'git-commit'
 require 'messages'
+require 'rs-commentary'
 require 'keymaps'
 require 'close-unnamed'
 require 'strip-whitespaces'

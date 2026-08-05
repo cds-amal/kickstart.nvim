@@ -1,86 +1,19 @@
+-- lazy = false, and no `ft`: rustaceanvim installs its own FileType hook and
+-- asks not to be lazy-loaded. An `ft` trigger here would be inert anyway, since
+-- lazy.nvim only infers laziness from triggers when `lazy` is unset.
 return {
   'mrcjkb/rustaceanvim',
   version = '^5',
   lazy = false,
-  ft = { 'rust' },
   config = function()
-    local codelldb_path = vim.fn.stdpath 'data' .. '/mason/bin/codelldb'
-    local liblldb_ext = (vim.uv or vim.loop).os_uname().sysname == 'Darwin' and '.dylib' or '.so'
-    local liblldb_path = vim.fn.stdpath 'data' .. '/mason/packages/codelldb/extension/lldb/lib/liblldb' .. liblldb_ext
+    -- Every cargo process nvim spawns gets backtraces, which is what we want
+    -- from the test runner and harmless everywhere else.
+    vim.env.RUST_BACKTRACE = '1'
 
     -- Resolve rustup's lldb helper scripts from the active toolchain so this
     -- works across machines/triples without hard-coding a target like
     -- `aarch64-apple-darwin`.
-    local rust_sysroot = vim.fn.trim(vim.fn.system 'rustc --print sysroot')
-    local rust_etc = rust_sysroot .. '/lib/rustlib/etc'
-
-    -- LSP toggle state: 'rust-analyzer' or 'rs-commentary'
-    vim.g.rust_lsp_active = 'rust-analyzer'
-
-    local rs_commentary_path = vim.fn.expand '$HOME/oss/rs-commentary/target/release/rs-commentary'
-
-    -- Start rs-commentary for a buffer
-    local function start_rs_commentary(bufnr)
-      bufnr = bufnr or vim.api.nvim_get_current_buf()
-      vim.lsp.start {
-        name = 'rs-commentary',
-        cmd = { 'sh', '-c', rs_commentary_path .. ' 2>> /tmp/rs-commentary-log' },
-        root_dir = vim.fs.root(bufnr, { 'Cargo.toml', '.git' }),
-        capabilities = require('blink.cmp').get_lsp_capabilities(),
-        on_attach = function()
-          vim.lsp.inlay_hint.enable(true)
-        end,
-      }
-    end
-
-    -- Toggle function
-    local function toggle_rust_lsp()
-      local bufnr = vim.api.nvim_get_current_buf()
-
-      -- Stop current LSP clients for this buffer
-      local clients = vim.lsp.get_clients { bufnr = bufnr }
-      for _, client in ipairs(clients) do
-        if client.name == 'rust-analyzer' or client.name == 'rs-commentary' then
-          client:stop()
-        end
-      end
-
-      -- Toggle the active LSP
-      if vim.g.rust_lsp_active == 'rust-analyzer' then
-        vim.g.rust_lsp_active = 'rs-commentary'
-        start_rs_commentary()
-        vim.notify('Switched to rs-commentary', vim.log.levels.INFO)
-      else
-        vim.g.rust_lsp_active = 'rust-analyzer'
-        -- Trigger FileType to let rustaceanvim auto-attach
-        vim.cmd 'doautocmd FileType rust'
-        vim.notify('Switched to rust-analyzer', vim.log.levels.INFO)
-      end
-    end
-
-    -- Global keymap for toggling (works in any Rust buffer)
-    vim.keymap.set('n', '<leader>rL', toggle_rust_lsp, { desc = 'Rust: Toggle LSP (rust-analyzer/rs-commentary)' })
-
-    -- Auto-start rs-commentary for Rust files
-    vim.api.nvim_create_autocmd('FileType', {
-      pattern = 'rust',
-      callback = function()
-        if vim.g.rust_lsp_active == 'rs-commentary' then
-          start_rs_commentary()
-        end
-      end,
-    })
-
-    -- Commands for rs-commentary
-    vim.api.nvim_create_user_command('RsCommentaryStart', function()
-      start_rs_commentary()
-    end, {})
-
-    vim.api.nvim_create_user_command('RsCommentaryStop', function()
-      for _, client in ipairs(vim.lsp.get_clients { name = 'rs-commentary' }) do
-        client:stop()
-      end
-    end, {})
+    local rust_etc = vim.fn.trim(vim.fn.system 'rustc --print sysroot') .. '/lib/rustlib/etc'
 
     -- rust-analyzer only reports file:// links into target/doc (the cargo-doc
     -- generated pages, the only docs that exist for workspace crates) when the
@@ -118,13 +51,6 @@ return {
       end
     end
 
-    -- rustaceanvim gives us two halves of what ,rt should do: `run` resolves
-    -- the runnable at the cursor but doesn't care whether it's a test (in
-    -- `fn main` it would cheerfully `cargo run`), and `testables` filters to
-    -- tests but always prompts. Filtering to testables *before* the cursor
-    -- lookup gives both: an exact hit runs, anything else falls through to
-    -- the picker.
-    --
     -- Matches rustaceanvim's own is_testable: rust-analyzer labels a runnable
     -- as a test by its first cargo arg, which covers `test` and `test-mod`.
     local function is_testable(runnable)
@@ -132,8 +58,13 @@ return {
       return #cargo_args > 0 and vim.startswith(cargo_args[1], 'test')
     end
 
+    -- rustaceanvim gives us two halves of what ,rt should do: `run` resolves
+    -- the runnable at the cursor but doesn't care whether it's a test (in
+    -- `fn main` it would cheerfully `cargo run`), and `testables` filters to
+    -- tests but always prompts. Filtering to testables *before* the cursor
+    -- lookup gives both: an exact hit runs, anything else falls through to
+    -- the picker.
     local function test_at_cursor()
-      vim.env.RUST_BACKTRACE = '1'
       local params = {
         textDocument = vim.lsp.util.make_text_document_params(0),
         position = nil, -- ask for every runnable; we do our own cursor filtering
@@ -156,6 +87,43 @@ return {
       end)
     end
 
+    -- Open the macro expansion under the cursor in a scratch split.
+    local function expand_macro(client, bufnr)
+      local position = vim.lsp.util.make_position_params(0, client.offset_encoding)
+      vim.lsp.buf_request(bufnr, 'rust-analyzer/expandMacro', position, function(_, result)
+        if not result or not result.expansion then
+          vim.notify('No macro expansion available', vim.log.levels.WARN)
+          return
+        end
+        vim.cmd 'vsplit'
+        local buf = vim.api.nvim_create_buf(true, true)
+        vim.api.nvim_win_set_buf(0, buf)
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(result.expansion, '\n'))
+        vim.bo[buf].filetype = 'rust'
+        vim.bo[buf].modifiable = false
+      end)
+    end
+
+    -- Keymaps that are nothing but a RustLsp subcommand, as { suffix, cmd, desc }.
+    -- `cmd` is passed to vim.cmd.RustLsp as-is, so a table carries extra args
+    -- or a bang the same way it would on the command line.
+    local RUSTLSP_MAPS = {
+      { 'rc', 'codeAction', 'Code Action' },
+      { 'rd', 'debuggables', 'Debuggables' },
+      { 'rr', 'runnables', 'Runnables' },
+      { 'rT', 'testables', 'Testables (pick)' },
+      { 'rp', 'rebuildProcMacros', 'Rebuild Proc Macros' },
+      { 'rm', 'moveItemUp', 'Move Item Up' },
+      { 'rM', 'moveItemDown', 'Move Item Down' },
+      { 'rx', 'explainError', 'Explain Error' },
+      { 'ro', 'openCargo', 'Open Cargo.toml' },
+      { 'rg', 'openDocs', 'Open Docs' },
+      { 'rj', 'joinLines', 'Join Lines' },
+      { 'rh', { 'hover', 'actions' }, 'Hover Actions' },
+      { 'r.', { 'run', bang = true }, 'Rerun Last' },
+      { 'rD', { 'debuggables', bang = true }, 'Debug Test at Cursor' },
+    }
+
     vim.g.rustaceanvim = {
       -- Plugin configuration
       tools = {
@@ -175,164 +143,38 @@ return {
           },
         },
         auto_attach = function()
-          -- Only auto-attach rust-analyzer if it's the active LSP
-          return vim.g.rust_lsp_active == 'rust-analyzer'
+          -- rs-commentary answers the same requests, so only one of the two
+          -- attaches; nil means it was never loaded. See lua/rs-commentary.lua.
+          return (vim.g.rust_lsp_active or 'rust-analyzer') == 'rust-analyzer'
         end,
         on_attach = function(client, bufnr)
-          -- Set keymaps for Rust-specific features
-          local map = function(keys, func, desc)
+          local function map(keys, func, desc)
             vim.keymap.set('n', keys, func, { buffer = bufnr, desc = 'Rust: ' .. desc })
           end
 
-          -- Expand macro (with fallback to vim.pretty_print for inspection)
+          for _, entry in ipairs(RUSTLSP_MAPS) do
+            local suffix, cmd, desc = entry[1], entry[2], entry[3]
+            map('<leader>' .. suffix, function()
+              vim.cmd.RustLsp(cmd)
+            end, desc)
+          end
+
           map('<leader>re', function()
-            vim.lsp.buf_request(bufnr, 'rust-analyzer/expandMacro', vim.lsp.util.make_position_params(0, client.offset_encoding), function(_, result)
-              if not result or not result.expansion then
-                vim.notify('No macro expansion available', vim.log.levels.WARN)
-                return
-              end
-
-              -- Open right split with expanded macro
-              vim.cmd 'vsplit'
-              local buf = vim.api.nvim_create_buf(true, true)
-              vim.api.nvim_win_set_buf(0, buf)
-              local lines = vim.split(result.expansion, '\n')
-              vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-              vim.api.nvim_buf_set_option(buf, 'filetype', 'rust')
-              vim.api.nvim_buf_set_option(buf, 'modifiable', false)
-            end)
+            expand_macro(client, bufnr)
           end, 'Expand Macro')
-
-          -- Rust-specific keymaps
-          map('<leader>rc', function()
-            vim.cmd.RustLsp 'codeAction'
-          end, 'Code Action')
-          map('<leader>rd', function()
-            vim.cmd.RustLsp 'debuggables'
-          end, 'Debuggables')
           map('<leader>rt', test_at_cursor, 'Test at Cursor')
-          map('<leader>rT', function()
-            vim.env.RUST_BACKTRACE = '1'
-            vim.cmd.RustLsp 'testables'
-          end, 'Testables (pick)')
-          map('<leader>r.', function()
-            vim.env.RUST_BACKTRACE = '1'
-            vim.cmd.RustLsp { 'run', bang = true }
-          end, 'Rerun Last')
-          map('<leader>rr', function()
-            vim.cmd.RustLsp 'runnables'
-          end, 'Runnables')
-          map('<leader>rp', function()
-            vim.cmd.RustLsp 'rebuildProcMacros'
-          end, 'Rebuild Proc Macros')
-          map('<leader>rm', function()
-            vim.cmd.RustLsp 'moveItemUp'
-          end, 'Move Item Up')
-          map('<leader>rM', function()
-            vim.cmd.RustLsp 'moveItemDown'
-          end, 'Move Item Down')
-          map('<leader>rh', function()
-            vim.cmd.RustLsp { 'hover', 'actions' }
-          end, 'Hover Actions')
-          map('<leader>rx', function()
-            vim.cmd.RustLsp 'explainError'
-          end, 'Explain Error')
-          map('<leader>ro', function()
-            vim.cmd.RustLsp 'openCargo'
-          end, 'Open Cargo.toml')
-          map('<leader>rg', function()
-            vim.cmd.RustLsp 'openDocs'
-          end, 'Open Docs')
-          -- Alt+Click a symbol to open its docs in the browser. Alt rather
-          -- than Ctrl: Ctrl+Click is already go-to-definition. The leading
-          -- <LeftMouse> moves the cursor to the click target first.
-          vim.keymap.set('n', '<M-LeftMouse>', '<LeftMouse><Cmd>RustLsp openDocs<CR>', { buffer = bufnr, desc = 'Rust: Open Docs (Alt+Click)' })
-          map('<leader>rj', function()
-            vim.cmd.RustLsp 'joinLines'
-          end, 'Join Lines')
-
-          -- Debug specific test under cursor
-          map('<leader>rD', function()
-            vim.cmd.RustLsp { 'debuggables', bang = true }
-          end, 'Debug Test')
-
-          -- Toggle inlay hints
           map('<leader>ri', function()
             vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = bufnr }, { bufnr = bufnr })
           end, 'Toggle Inlay Hints')
+
+          -- Alt+Click a symbol to open its docs in the browser. Alt rather
+          -- than Ctrl: Ctrl+Click is already go-to-definition. The leading
+          -- <LeftMouse> moves the cursor to the click target first.
+          map('<M-LeftMouse>', '<LeftMouse><Cmd>RustLsp openDocs<CR>', 'Open Docs (Alt+Click)')
         end,
 
         settings = {
-          ['rust-analyzer'] = {
-            runnables = {
-              extraTestBinaryArgs = { '--nocapture' },
-            },
-            completion = {
-              callable = {
-                snippets = 'fill_arguments',
-              },
-              postfix = {
-                enable = true,
-              },
-            },
-            cargo = {
-              allFeatures = true,
-              loadOutDirsFromCheck = true,
-              runBuildScripts = true,
-            },
-            checkOnSave = true,
-            check = {
-              allFeatures = true,
-              command = 'clippy',
-              extraArgs = { '--no-deps' },
-            },
-            procMacro = {
-              enable = true,
-              ignored = {
-                ['async-trait'] = { 'async_trait' },
-                ['napi-derive'] = { 'napi' },
-                ['async-recursion'] = { 'async_recursion' },
-              },
-            },
-            diagnostics = {
-              enable = true,
-              experimental = {
-                enable = false,
-              },
-            },
-            inlayHints = {
-              bindingModeHints = {
-                enable = false,
-              },
-              chainingHints = {
-                enable = true,
-              },
-              closingBraceHints = {
-                enable = true,
-                minLines = 25,
-              },
-              closureReturnTypeHints = {
-                enable = 'with_block',
-              },
-              lifetimeElisionHints = {
-                enable = 'never',
-                useParameterNames = false,
-              },
-              maxLength = 25,
-              parameterHints = {
-                enable = true,
-              },
-              reborrowHints = {
-                enable = 'never',
-              },
-              renderColons = true,
-              typeHints = {
-                enable = true,
-                hideClosureInitialization = false,
-                hideNamedConstructor = false,
-              },
-            },
-          },
+          ['rust-analyzer'] = require 'rust-analyzer-settings',
         },
       },
 
@@ -342,7 +184,7 @@ return {
           type = 'server',
           port = '${port}',
           executable = {
-            command = codelldb_path,
+            command = vim.fn.stdpath 'data' .. '/mason/bin/codelldb',
             args = { '--port', '${port}' },
           },
         },
