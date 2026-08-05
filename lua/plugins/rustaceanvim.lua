@@ -15,37 +15,82 @@ return {
     -- `aarch64-apple-darwin`.
     local rust_etc = vim.fn.trim(vim.fn.system 'rustc --print sysroot') .. '/lib/rustlib/etc'
 
+    -- Workspace members keyed by their doc-directory name, which is the package
+    -- name with hyphens turned into underscores (surfpool-types -> surfpool_types).
+    -- `cargo metadata --no-deps` only reads manifests, so it costs ~20ms and is
+    -- cached for the session; it runs at most once per workspace, and only on
+    -- the path where a local doc page turned out to be missing.
+    local members_by_root = {}
+    local function workspace_members(root)
+      if not members_by_root[root] then
+        local members = {}
+        local out = vim.system({ 'cargo', 'metadata', '--no-deps', '--format-version', '1' }, { cwd = root, text = true }):wait()
+        local ok, meta = pcall(vim.json.decode, out.stdout or '')
+        if out.code == 0 and ok then
+          for _, pkg in ipairs(meta.packages or {}) do
+            members[(pkg.name:gsub('%-', '_'))] = true
+          end
+        end
+        members_by_root[root] = members
+      end
+      return members_by_root[root]
+    end
+
     -- rust-analyzer only reports file:// links into target/doc (the cargo-doc
     -- generated pages, the only docs that exist for workspace crates) when the
     -- client advertises the experimental localDocs capability. With that on,
     -- the experimental/externalDocs response is { web?, local? } instead of a
     -- bare URL string, so open_url has to handle both shapes.
+    --
+    -- It fills in `web` for everything, workspace crates included, so treating
+    -- web as the fallback whenever the local page is missing would mean the
+    -- page never gets built: you would land on a docs.rs URL that is stale for
+    -- a workspace crate and absent for an unpublished one. Preference order is
+    -- therefore the local page, then building it when the crate is one of ours
+    -- (--no-deps builds workspace members and nothing else, so there is no
+    -- point running it for a dependency), then docs.rs.
     local function open_docs_url(url)
       local open = require('rustaceanvim.os').open_url
       if type(url) == 'string' then
         open(url)
         return
       end
+
       local web, local_url = url.web, url['local']
       local local_path = local_url and vim.uri_to_fname(local_url:gsub('#.*$', ''))
       if local_path and vim.uv.fs_stat(local_path) then
         open(local_url)
-      elseif web then
-        open(web)
-      elseif local_url then
-        -- A workspace symbol whose docs haven't been generated yet: build
-        -- them, then open. --no-deps keeps the build short enough to wait for.
-        local root = vim.fs.root(0, 'Cargo.toml') or vim.fn.getcwd()
-        vim.notify('Docs not generated yet; running cargo doc --no-deps ...', vim.log.levels.INFO)
+        return
+      end
+
+      -- The local URL carries both halves we need: <root>/target/doc/<crate>/...
+      local root, crate = nil, nil
+      if local_path then
+        root, crate = local_path:match '^(.*)/target/doc/([^/]+)/'
+      end
+
+      if root and workspace_members(root)[crate] then
+        vim.notify(('Docs for %s not built yet; running cargo doc --no-deps ...'):format(crate), vim.log.levels.INFO)
         vim.system({ 'cargo', 'doc', '--no-deps' }, { cwd = root }, function(out)
           vim.schedule(function()
-            if out.code == 0 then
+            if out.code == 0 and vim.uv.fs_stat(local_path) then
               open(local_url)
-            else
+            elseif out.code ~= 0 then
               vim.notify('cargo doc failed:\n' .. (out.stderr or ''), vim.log.levels.ERROR)
+            elseif web then
+              -- Built fine, but the item has no page of its own (a re-export,
+              -- say). docs.rs is a better guess than a 404 on disk.
+              open(web)
+            else
+              vim.notify('cargo doc built no page for this symbol', vim.log.levels.WARN)
             end
           end)
         end)
+        return
+      end
+
+      if web then
+        open(web)
       else
         vim.notify('No documentation found for the symbol under the cursor', vim.log.levels.WARN)
       end
