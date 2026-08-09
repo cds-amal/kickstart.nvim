@@ -2,7 +2,9 @@
 -- Staged (index vs HEAD) and Unstaged (worktree vs index) sections;
 -- selecting an entry opens the matching side-by-side diff.
 return {
-  'sindrets/diffview.nvim',
+  -- Maintained fork of sindrets/diffview.nvim (upstream quiet since 2024);
+  -- same commands and lua module names.
+  'dlyongemallo/diffview-plus.nvim',
   cmd = { 'DiffviewOpen', 'DiffviewClose', 'DiffviewFileHistory', 'DiffviewToggleFiles', 'DiffviewFocusFiles' },
   keys = {
     {

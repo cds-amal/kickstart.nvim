@@ -1,7 +1,8 @@
 return {
   'LionyxML/gitlineage.nvim',
   dependencies = {
-    'sindrets/diffview.nvim',
+    -- the maintained fork; same module names, see plugins/diffview.lua
+    'dlyongemallo/diffview-plus.nvim',
   },
   config = function()
     require('gitlineage').setup {
