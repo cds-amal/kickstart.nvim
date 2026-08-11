@@ -388,6 +388,12 @@ require('lazy').setup({
       -- - sd'   - [S]urround [D]elete [']quotes
       -- - sr)'  - [S]urround [R]eplace [)] [']
       require('mini.surround').setup {
+        -- Linewise adds (V sa, or a linewise motion like sa_ / sa2j) place
+        -- each delimiter on its own line and indent the wrapped lines;
+        -- charwise adds stay inline. Prefer `}` over `{` for linewise braces:
+        -- the `{` builtin pads with inner spaces, which linewise placement
+        -- turns into a trailing space after the brace.
+        respect_selection_type = true,
         custom_surroundings = {
 
           -- - saiw c - surround inner word with console code fence
@@ -402,8 +408,27 @@ require('lazy').setup({
           ['C'] = {
             output = { left = '/*\n', right = '\n*/' },
           },
+
+          -- - V sa l (or sa_ l) - wrap line(s) in an indented `loop { }` block
+          ['l'] = {
+            output = { left = 'loop {', right = '}' },
+          },
         },
       }
+
+      -- The fence surrounds above embed `\n` in their output, which only
+      -- works through the charwise insert path: the linewise branch that
+      -- respect_selection_type enables feeds the string to `append()`, where
+      -- the `\n` becomes a literal NUL, and the fenced lines pick up an
+      -- indent level they shouldn't have. Keep the old behavior in markdown,
+      -- where the fences live.
+      vim.api.nvim_create_autocmd('FileType', {
+        pattern = 'markdown',
+        callback = function()
+          vim.b.minisurround_config = { respect_selection_type = false }
+        end,
+        desc = 'Inline surround adds in markdown (fence surrounds embed \\n)',
+      })
 
       -- Disable mini.operators' `replace` operator: its default `gr` prefix
       -- collides with Neovim 0.11+'s reserved LSP namespace (grD, grr, gri,
