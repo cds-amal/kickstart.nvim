@@ -113,6 +113,26 @@ local function ctx_node()
 end
 
 return {
+  -- `cl` -> closure. You land on the prefix choice first (empty by default);
+  -- <C-f> cycles empty -> move -> async -> async move. Tab to the args, then
+  -- the body: a bare expression by default, <C-f> for a block. `async` needs
+  -- edition 2024 (Rust 1.85) for async closures proper.
+  s('cl', {
+    c(1, {
+      t(''),
+      t('move '),
+      t('async '),
+      t('async move '),
+    }),
+    t('|'),
+    i(2),
+    t('| '),
+    c(3, {
+      sn(nil, { i(1) }),
+      sn(nil, { t({ '{', '    ' }), i(1), t({ '', '}' }) }),
+    }),
+  }),
+
   -- `tfn` -> bare #[test] fn
   s(
     'tfn',
