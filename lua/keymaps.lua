@@ -93,3 +93,8 @@ map('n', '<leader>sn', function() Snacks.picker.files { cwd = vim.fn.stdpath 'co
 map('n', '<leader>ep', function()
   Snacks.picker.files { cwd = vim.fs.joinpath(vim.fn.stdpath 'data', 'lazy'), hidden = true }
 end, { desc = '[P]lugin path search' })
+
+-- Yank the current buffer's path to the system clipboard (the `%` register
+-- already holds the relative form for "%p / <C-r>%; these get it off-editor).
+map('n', '<leader>yp', function() vim.fn.setreg('+', vim.fn.expand '%:p') end, { desc = '[Y]ank absolute file [P]ath' })
+map('n', '<leader>yr', function() vim.fn.setreg('+', vim.fn.expand '%') end, { desc = '[Y]ank [R]elative file path' })
