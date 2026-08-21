@@ -99,6 +99,35 @@ local function accounts_structs()
   return names
 end
 
+-- dynamicNode body for `impl`: watches the trait (node 1) and swaps the body
+-- as its text changes (live, thanks to TextChangedI in update_events; see
+-- init.lua). `Display` and `Debug` share the same fmt signature, so both get
+-- the fmt fn skeleton the moment the name matches; anything else keeps a bare
+-- insert stop. The Formatter/Result path mirrors however the trait was typed
+-- (`fmt::Display` -> `fmt::Formatter`), falling back to fully-qualified
+-- `std::fmt::` for the bare name, since `use std::fmt::Display;` alone doesn't
+-- bring Formatter into scope. Caveat: regeneration rebuilds the body, so edit
+-- the trait *before* filling the write! args; editing it after discards them.
+local function impl_body(args)
+  local trait = args[1][1] or ''
+  local seg = trait:match('([%w_]+)$')
+  if seg == 'Display' or seg == 'Debug' then
+    local prefix = trait:sub(1, #trait - #seg)
+    if prefix == '' then
+      prefix = 'std::fmt::'
+    end
+    return sn(nil, {
+      t('    fn fmt(&self, f: &mut ' .. prefix .. "Formatter<'_>) -> " .. prefix .. 'Result {'),
+      t({ '', '        write!(f, "' }),
+      i(1),
+      t('"'),
+      i(2),
+      t({ ')', '    }' }),
+    })
+  end
+  return sn(nil, { t('    '), i(1) })
+end
+
 -- dynamicNode body for `hand`: offer the buffer's Accounts structs as choices
 -- for the Context<...> type, with a free-text node last (and as the sole option
 -- when the buffer has none, e.g. the handler lives in its own file). Generated
@@ -131,6 +160,20 @@ return {
       sn(nil, { i(1) }),
       sn(nil, { t({ '{', '    ' }), i(1), t({ '', '}' }) }),
     }),
+  }),
+
+  -- `impl` -> impl Trait for Type. The body is a dynamicNode keyed on the
+  -- trait: type `Display` (or `Debug`) and the fmt fn skeleton appears as soon
+  -- as the name matches; any other trait leaves a plain stop inside the braces.
+  -- See `impl_body` above for the path-mirroring and regeneration caveats.
+  s('impl', {
+    t('impl '),
+    i(1, 'Trait'),
+    t(' for '),
+    i(2, 'Type'),
+    t({ ' {', '' }),
+    d(3, impl_body, { 1 }),
+    t({ '', '}' }),
   }),
 
   -- `tfn` -> bare #[test] fn
