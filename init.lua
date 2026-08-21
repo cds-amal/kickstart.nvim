@@ -252,6 +252,11 @@ require('lazy').setup({
         },
         config = function()
           local ls = require 'luasnip'
+          -- Re-evaluate function/dynamic nodes on every keystroke, not just
+          -- InsertLeave (the default). The `impl` snippet depends on this: its
+          -- body watches the trait name and must swap in the fmt skeleton the
+          -- moment you finish typing `Display`, while still in insert mode.
+          ls.setup { update_events = { 'TextChanged', 'TextChangedI' } }
           -- Load custom Lua snippets after LuaSnip is initialized
           vim.schedule(function()
             require('luasnip.loaders.from_lua').lazy_load { paths = '~/.config/nvim/lua/snippets' }
