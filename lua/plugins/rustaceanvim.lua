@@ -80,10 +80,15 @@ return {
       -- Scoped with -p: at a virtual workspace root, a bare `cargo doc` documents
       -- every member and compiles the whole dependency tree with it, which for a
       -- nine-crate Solana workspace is minutes. One crate is seconds.
+      --
+      -- --document-private-items because rust-analyzer links pub(crate) and
+      -- private items too, and a public-only build has no page for those (the
+      -- fs_stat above then fails even right after a plain `cargo doc`). These
+      -- docs are for the crate's own author, so private pages are the point.
       local package = root and workspace_members(root)[crate] or nil
       if package then
         vim.notify(('Docs for %s not built yet; running cargo doc -p %s ...'):format(crate, package), vim.log.levels.INFO)
-        vim.system({ 'cargo', 'doc', '--no-deps', '-p', package }, { cwd = root }, function(out)
+        vim.system({ 'cargo', 'doc', '--no-deps', '--document-private-items', '-p', package }, { cwd = root }, function(out)
           vim.schedule(function()
             if out.code == 0 and vim.uv.fs_stat(local_path) then
               open(local_url)
