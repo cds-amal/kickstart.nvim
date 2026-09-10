@@ -184,6 +184,11 @@ return {
       { 'rh', { 'hover', 'actions' }, 'Hover Actions' },
       { 'r.', { 'run', bang = true }, 'Rerun Last' },
       { 'rD', { 'debuggables', bang = true }, 'Debug Test at Cursor' },
+      -- rust-analyzer's viewHir/viewMir extensions: the IR of the function
+      -- body under the cursor, in a scratch split. Cursor outside a body
+      -- gets a "Not inside a function body" error from rustaceanvim.
+      { 'rvh', { 'view', 'hir' }, 'View HIR' },
+      { 'rvm', { 'view', 'mir' }, 'View MIR' },
     }
 
     vim.g.rustaceanvim = {
