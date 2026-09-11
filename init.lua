@@ -303,10 +303,15 @@ require('lazy').setup({
         -- <c-space>: Open menu or open docs if already open
         -- <c-n>/<c-p> or <up>/<down>: Select next/previous item
         -- <c-e>: Hide menu
-        -- <c-k>: Toggle signature help
+        -- <c-k>: Toggle signature help (unbound below)
         --
         -- See :h blink-cmp-config-keymap for defining your own keymap
         preset = 'default',
+        -- Give <C-k> back to Vim for digraph entry (:h i_CTRL-K). The preset's
+        -- 'show_signature' always succeeds while signature.enabled is on, so
+        -- its 'fallback' never reaches the built-in. <C-s> (lsp.lua) already
+        -- opens signature help on demand, and blink auto-shows it in arguments.
+        ['<C-k>'] = {},
 
         -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
         --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
