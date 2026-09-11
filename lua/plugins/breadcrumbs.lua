@@ -87,6 +87,16 @@ local function lsp_callback(err, symbols, ctx, config)
 
   local breadcrumb_string = table.concat(breadcrumbs, ' > ')
 
+  -- The typestate projection's context: the type whose impl holds the cursor, when the
+  -- plugin is loaded; a signal that :RustProjection has somewhere to go.
+  local has_typestate, typestate = pcall(require, 'typestate')
+  if has_typestate then
+    local segment = typestate.context_segment(ctx.bufnr)
+    if segment ~= '' then
+      breadcrumb_string = breadcrumb_string .. '   ' .. segment
+    end
+  end
+
   if breadcrumb_string ~= '' then
     vim.o.winbar = breadcrumb_string
   else
@@ -135,6 +145,12 @@ end
 
 -- Setup autocmds to update breadcrumbs on cursor movement
 local breadcrumbs_augroup = vim.api.nvim_create_augroup('Breadcrumbs', { clear = true })
+
+-- The typestate context settles a moment after the cursor stops; redraw when it changes.
+vim.api.nvim_create_autocmd('User', {
+  pattern = 'TypestateContext',
+  callback = breadcrumbs_set,
+})
 
 vim.api.nvim_create_autocmd({ 'CursorMoved' }, {
   group = breadcrumbs_augroup,
