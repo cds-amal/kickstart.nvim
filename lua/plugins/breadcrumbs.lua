@@ -87,11 +87,13 @@ local function lsp_callback(err, symbols, ctx, config)
 
   local breadcrumb_string = table.concat(breadcrumbs, ' > ')
 
-  -- The typestate projection's context: the type whose impl holds the cursor, when the
-  -- plugin is loaded; a signal that :RustProjection has somewhere to go.
+  -- The typestate projection's context: the type whose impl holds the cursor, marked
+  -- with the projections it has (⇄ typestate, ⊢ impls), when the plugin is loaded; a
+  -- signal that :RustProjection has somewhere to go. Per window, like the winbar this
+  -- writes: the current one.
   local has_typestate, typestate = pcall(require, 'typestate')
   if has_typestate then
-    local segment = typestate.context_segment(ctx.bufnr)
+    local segment = typestate.context_segment()
     if segment ~= '' then
       breadcrumb_string = breadcrumb_string .. '   ' .. segment
     end

@@ -505,6 +505,14 @@ require('lazy').setup({
       -- cursor location to LINE:COLUMN
       ---@diagnostic disable-next-line: duplicate-set-field
       statusline.section_location = function()
+        -- The typestate plugin's runs out (`⟳ roots surfpool 14s`) ahead of the cursor
+        -- position while a projection or the roots list is being built; the plugin
+        -- redraws the statusline once a second while anything is out.
+        local has_typestate, typestate = pcall(require, 'typestate')
+        local activity = has_typestate and typestate.activity() or ''
+        if activity ~= '' then
+          return activity:gsub('%%', '%%%%') .. '  %2l:%-2v'
+        end
         return '%2l:%-2v'
       end
 
