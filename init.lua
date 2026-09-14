@@ -528,7 +528,8 @@ require('lazy').setup({
     build = ':TSUpdate',
     config = function()
       vim.treesitter.language.register('bash', 'zsh')
-      require('nvim-treesitter').install { 'bash', 'c', 'cue', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'rust', 'vim', 'vimdoc' }
+      vim.treesitter.language.register('tlaplus', 'tla')
+      require('nvim-treesitter').install { 'bash', 'c', 'cue', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'rust', 'tlaplus', 'vim', 'vimdoc' }
 
       -- Use treesitter's AST-aware indentexpr wherever a parser AND indent
       -- queries are both available. Without the queries check, a parser with
