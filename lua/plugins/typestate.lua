@@ -17,5 +17,6 @@ return {
     { '<leader>rnt', '<cmd>RustProjection typestate<CR>', desc = 'Rust: navigate to [T]ypestate projection' },
     { '<leader>rnr', '<cmd>RustProjection roots<CR>', desc = 'Rust: navigate to the [R]oots list of the workspace' },
     { '<leader>rnl', '<cmd>RustProjection impls-lsp<CR>', desc = 'Rust: navigate to the impls projection from rust-analyzer ([L]SP)' },
+    { '<leader>rng', '<cmd>RustProjection graph<CR>', desc = 'Rust: the typestate machine [G]raph, in a float over the source' },
   },
 }
