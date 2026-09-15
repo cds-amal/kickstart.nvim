@@ -91,9 +91,9 @@ local function lsp_callback(err, symbols, ctx, config)
   -- with the projections it has (⇄ typestate, ⊢ impls), when the plugin is loaded; a
   -- signal that :RustProjection has somewhere to go. Per window, like the winbar this
   -- writes: the current one.
-  local has_typestate, typestate = pcall(require, 'typestate')
-  if has_typestate then
-    local segment = typestate.context_segment()
+  local has_crosscut, crosscut = pcall(require, 'crosscut')
+  if has_crosscut then
+    local segment = crosscut.context_segment()
     if segment ~= '' then
       breadcrumb_string = breadcrumb_string .. '   ' .. segment
     end
