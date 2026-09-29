@@ -1,5 +1,11 @@
 -- rest.nvim pulls its Lua deps (nvim-nio, mimetypes, xml2lua, fidget,
 -- tree-sitter-http) as luarocks via lazy.nvim's rockspec support.
+-- The http parser Neovim actually loads comes from nvim-treesitter
+-- (init.lua install list): lazy.nvim puts the rocks tree on package.cpath
+-- only, so the luarocks-built parser/http.so is never on the runtimepath.
+-- Building the tree-sitter-http rock also needs luarocks-build-treesitter-parser
+-- installed in the hererocks tree (lazy-rocks/hererocks), not just the
+-- plugin's own rock tree where lazy.nvim puts it.
 return {
   'rest-nvim/rest.nvim',
   ft = { 'http' },
