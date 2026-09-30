@@ -561,11 +561,19 @@ require('lazy').setup({
       -- cursor location to LINE:COLUMN
       ---@diagnostic disable-next-line: duplicate-set-field
       statusline.section_location = function()
-        -- The typestate plugin's runs out (`⟳ roots surfpool 14s`) ahead of the cursor
-        -- position while a projection or the roots list is being built; the plugin
-        -- redraws the statusline once a second while anything is out.
+        -- The plugins' runs out (`⟳ roots surfpool 14s`, `⟳ events google 2s`) ahead of
+        -- the cursor position while a projection, the roots list, a calendar page or a
+        -- create is being waited on; each plugin redraws the statusline once a second
+        -- while anything of its own is out.
         local has_crosscut, crosscut = pcall(require, 'crosscut')
-        local activity = has_crosscut and crosscut.activity() or ''
+        local has_calplus, calplus = pcall(require, 'calplus')
+        local segments = {}
+        for _, segment in ipairs({ has_crosscut and crosscut.activity() or '', has_calplus and calplus.activity() or '' }) do
+          if segment ~= '' then
+            segments[#segments + 1] = segment
+          end
+        end
+        local activity = table.concat(segments, ' · ')
         if activity ~= '' then
           return activity:gsub('%%', '%%%%') .. '  %2l:%-2v'
         end
