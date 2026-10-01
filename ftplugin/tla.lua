@@ -75,6 +75,7 @@ local function conversion_rules()
       if variant ~= '' and not seen[variant] then
         seen[variant] = true
         local rule = { len = #variant, order = #all, replacement = unicode, first = variant:sub(1, 1) }
+        rule.bullet = variant == [[/\]] or variant == [[\/]]
         if variant:match [[^\%a+$]] then
           -- a following letter means a longer operator is underway
           -- (\in vs \intersect), so require a non-letter after
@@ -106,7 +107,16 @@ local function conversion_rules()
   return rule_buckets
 end
 
-local function convert_chunk(s, buckets)
+-- A conjunction or disjunction list is column-sensitive: every bullet of a
+-- list sits in one column, and a line indented past it continues the item
+-- above. Replacing `/\` with the one-character `∧` moves whatever follows
+-- it on the line one column left, so a bullet that follows another bullet
+-- (`/\ \/ /\ x`) would land left of the siblings written under it on the
+-- next lines. `acc.lost` counts the columns lost so far on the line, and a
+-- list bullet (one with nothing but whitespace and bullets before it on the
+-- line) gets them back as spaces in front of it; an infix `/\` inside an
+-- expression keeps its single space.
+local function convert_chunk(s, buckets, acc)
   local out, i, n = {}, 1, #s
   while i <= n do
     local replaced = false
@@ -117,7 +127,13 @@ local function convert_chunk(s, buckets)
         if not (rule.needs_word_start and prev:match '[%w_]') and not (rule.not_after == prev) then
           local _, last = s:find(rule.pattern, i)
           if last then
+            if rule.bullet and acc.list and acc.lost > 0 then
+              table.insert(out, string.rep(' ', acc.lost))
+              acc.lost = 0
+            end
+            if not rule.bullet then acc.list = false end
             table.insert(out, rule.replacement)
+            acc.lost = acc.lost + rule.len - vim.fn.strchars(rule.replacement)
             i = last + 1
             replaced = true
             break
@@ -126,6 +142,7 @@ local function convert_chunk(s, buckets)
       end
     end
     if not replaced then
+      if not s:sub(i, i):match '%s' then acc.list = false end
       table.insert(out, s:sub(i, i))
       i = i + 1
     end
@@ -138,16 +155,16 @@ end
 -- comment bodies do get converted; treating (* *) as opaque needs
 -- multi-line state this line-by-line pass does not track.
 local function convert_line(line, buckets)
-  local out, i = {}, 1
+  local out, i, acc = {}, 1, { lost = 0, list = true }
   while true do
     local quote = line:find('"', i, true)
     local comment = line:find([[\*]], i, true)
     if comment and (not quote or comment < quote) then
-      table.insert(out, convert_chunk(line:sub(i, comment - 1), buckets))
+      table.insert(out, convert_chunk(line:sub(i, comment - 1), buckets, acc))
       table.insert(out, line:sub(comment))
       return table.concat(out)
     elseif quote then
-      table.insert(out, convert_chunk(line:sub(i, quote - 1), buckets))
+      table.insert(out, convert_chunk(line:sub(i, quote - 1), buckets, acc))
       -- find the closing quote, stepping over \" escapes
       local j = quote + 1
       while true do
@@ -164,10 +181,11 @@ local function convert_line(line, buckets)
         if backslashes % 2 == 0 then break end
       end
       table.insert(out, line:sub(quote, j - 1))
+      acc.list = false
       i = j
       if i > #line then return table.concat(out) end
     else
-      table.insert(out, convert_chunk(line:sub(i), buckets))
+      table.insert(out, convert_chunk(line:sub(i), buckets, acc))
       return table.concat(out)
     end
   end
