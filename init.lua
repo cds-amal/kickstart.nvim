@@ -59,6 +59,61 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+-- MATH abbreviations
+local abbreviations = {
+  -- Logic
+  ['or@'] = '∨',
+  ['xor@'] = '⊕',
+  ['and@'] = '∧',
+  ['not@'] = '¬',
+  ['implies@'] = '⇒',
+  ['iff@'] = '⇔',
+  ['forall@'] = '∀',
+  ['exists@'] = '∃',
+  ['true@'] = '⊤',
+  ['false@'] = '⊥',
+
+  -- Sets
+  ['in@'] = '∈',
+  ['notin@'] = '∉',
+  ['subset@'] = '⊂',
+  ['subseteq@'] = '⊆',
+  ['union@'] = '∪',
+  ['inter@'] = '∩',
+  ['empty@'] = '∅',
+  ['setminus@'] = '∖',
+
+  -- Comparisons and definitions
+  ['neq@'] = '≠',
+  ['leq@'] = '≤',
+  ['geq@'] = '≥',
+  ['approx@'] = '≈',
+  ['equiv@'] = '≡',
+  ['def@'] = '≜',
+
+  -- Arrows
+  ['to@'] = '→',
+  ['from@'] = '←',
+  ['mapsto@'] = '↦',
+  ['leadsto@'] = '↝',
+
+  -- Number sets
+  ['nat@'] = 'ℕ',
+  ['int@'] = 'ℤ',
+  ['rat@'] = 'ℚ',
+  ['real@'] = 'ℝ',
+
+  -- Arithmetic
+  ['times@'] = '×',
+  ['div@'] = '÷',
+  ['pm@'] = '±',
+  ['inf@'] = '∞',
+}
+
+for lhs, rhs in pairs(abbreviations) do
+  vim.cmd.iabbrev { lhs, rhs }
+end
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -537,7 +592,23 @@ require('lazy').setup({
     config = function()
       vim.treesitter.language.register('bash', 'zsh')
       vim.treesitter.language.register('tlaplus', 'tla')
-      require('nvim-treesitter').install { 'bash', 'c', 'cue', 'diff', 'html', 'http', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'rust', 'tlaplus', 'vim', 'vimdoc' }
+      require('nvim-treesitter').install {
+        'bash',
+        'c',
+        'cue',
+        'diff',
+        'html',
+        'http',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'query',
+        'rust',
+        'tlaplus',
+        'vim',
+        'vimdoc',
+      }
 
       -- Use treesitter's AST-aware indentexpr wherever a parser AND indent
       -- queries are both available. Without the queries check, a parser with
