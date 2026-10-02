@@ -59,20 +59,9 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
--- MATH abbreviations
+-- MATH abbreviations. The logic ones (and@, or@, not@, ...) are registered by
+-- truth-table.nvim; see :help truth-table-abbreviations.
 local abbreviations = {
-  -- Logic
-  ['or@'] = '∨',
-  ['xor@'] = '⊕',
-  ['and@'] = '∧',
-  ['not@'] = '¬',
-  ['implies@'] = '⇒',
-  ['iff@'] = '⇔',
-  ['forall@'] = '∀',
-  ['exists@'] = '∃',
-  ['true@'] = '⊤',
-  ['false@'] = '⊥',
-
   -- Sets
   ['in@'] = '∈',
   ['notin@'] = '∉',
