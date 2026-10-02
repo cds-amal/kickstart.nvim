@@ -12,6 +12,7 @@ return {
   },
   keys = {
     { '<leader>ttn', desc = 'New truth table' },
+    { '<leader>ttn', mode = 'x', desc = 'New truth table from selection' },
     { '<leader>tte', desc = 'Expand truth table' },
     { '<leader>ttt', desc = 'Toggle 0/1 ↔ F/T' },
     { '<leader>ttr', desc = 'Drop truth table row' },
