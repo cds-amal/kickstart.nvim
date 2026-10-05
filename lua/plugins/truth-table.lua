@@ -3,8 +3,8 @@
 -- global, so lazy-loading on the commands would leave them unregistered until
 -- the first :TruthTable. The plugin's setup() defines commands and mappings.
 return {
-  -- dir = '~/dev/nvim-plugins/truth-table.nvim',
-  'cds-io/truth-table.nvim',
+  dir = '~/dev/nvim-plugins/truth-table.nvim',
+  -- 'cds-io/truth-table.nvim',
   lazy = false,
   config = function()
     -- Accept ≠ as a spelling of xor, the counterpart of the plugin's built-in
