@@ -1,6 +1,8 @@
--- TLA+ support: a TLC runner and optional Unicode input mappings.
+-- TLA+ support: a TLC runner.
 -- Highlighting comes from the nvim-treesitter `tlaplus` parser (installed and
 -- aliased to filetype `tla` in init.lua) and is started in ftplugin/tla.lua.
+-- Unicode operators are typed with the `word@` abbreviations; see
+-- ftplugin/tla.lua.
 return {
   {
     -- :TlaInstall downloads tla2tools.jar; :TlaCheck runs TLC on the current
@@ -17,16 +19,6 @@ return {
     end,
     config = function(_, opts)
       require('tla').setup(opts)
-    end,
-  },
-  {
-    -- Rewrites ASCII operators to Unicode as you type (\in -> ∈). Off by
-    -- default so specs stay ASCII like the books and forums; toggle per buffer
-    -- with <leader>tm (see ftplugin/tla.lua).
-    'tlaplus-community/tlaplus-nvim-plugin',
-    ft = { 'tla' },
-    init = function()
-      vim.g.tlaplus_mappings_enable = false
     end,
   },
 }
