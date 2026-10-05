@@ -496,6 +496,14 @@ require('lazy').setup({
       -- Auto-pair brackets/quotes (replaces nvim-autopairs)
       require('mini.pairs').setup()
 
+      -- mini.pairs maps <CR> without remapping, and a key that is not
+      -- remapped skips abbreviation expansion, so `def@<CR>` would keep its
+      -- `def@`. <C-]> is exempt from that rule: it expands a pending
+      -- abbreviation and inserts nothing, so it goes in front.
+      vim.keymap.set('i', '<CR>', function()
+        return vim.keycode '<C-]>' .. require('mini.pairs').cr()
+      end, { expr = true, replace_keycodes = false, desc = 'Expand abbreviation, then MiniPairs <CR>' })
+
       -- Don't autopair `'` in Rust buffers. mini.pairs' neigh_pattern guard
       -- (skip when preceded by a letter) handles English contractions, but a
       -- lifetime `'a` is preceded by `<`, `&`, `,`, etc., so it slips through
