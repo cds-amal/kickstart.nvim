@@ -114,6 +114,13 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
   end
 end
 
+-- Add TLA filetype
+vim.filetype.add {
+  extension = {
+    tla = 'tla',
+  },
+}
+
 ---@type vim.Option
 local rtp = vim.opt.rtp
 rtp:prepend(lazypath)
@@ -568,7 +575,7 @@ require('lazy').setup({
         local has_crosscut, crosscut = pcall(require, 'crosscut')
         local has_calplus, calplus = pcall(require, 'calplus')
         local segments = {}
-        for _, segment in ipairs({ has_crosscut and crosscut.activity() or '', has_calplus and calplus.activity() or '' }) do
+        for _, segment in ipairs { has_crosscut and crosscut.activity() or '', has_calplus and calplus.activity() or '' } do
           if segment ~= '' then
             segments[#segments + 1] = segment
           end

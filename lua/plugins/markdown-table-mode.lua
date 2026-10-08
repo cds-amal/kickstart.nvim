@@ -17,7 +17,7 @@
 return {
   -- 'Kicamon/markdown-table-mode.nvim',
   dir = '~/dev/nvim-plugins/md-table-mode.nvim/',
-  ft = 'markdown',
+  ft = { 'markdown', 'tla' },
   config = function()
     require('markdown-table-mode').setup {
       filetype = { '*.md', '*.markdown', '*.tla' },
