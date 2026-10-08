@@ -15,20 +15,17 @@
 -- leaves its tables, and the file on disk, exactly as they were.
 
 return {
-  'Kicamon/markdown-table-mode.nvim',
+  -- 'Kicamon/markdown-table-mode.nvim',
+  dir = '~/dev/nvim-plugins/md-table-mode.nvim/',
   ft = 'markdown',
   config = function()
-    require('markdown-table-mode').setup({
+    require('markdown-table-mode').setup {
+      filetype = { '*.md', '*.markdown', '*.tla' },
       options = {
         insert = true, -- reflow when typing `|`
         insert_leave = true, -- reflow on leaving insert
+        auto_start = true, -- arm matching buffers as they open
       },
-    })
-    -- The plugin ships off (mtm_startup = false, init.lua) and exposes no
-    -- opt to start armed; its `:Mtm` toggle is the only lever, and its own
-    -- BufEnter/BufLeave hooks keep it live per buffer only once flipped on.
-    -- So arm it once here, else you'd `:Mtm` every session before tables
-    -- align. `silent!` swallows the toggle's startup "on" notification.
-    vim.cmd('silent! Mtm')
+    }
   end,
 }
