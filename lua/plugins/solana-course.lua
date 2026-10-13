@@ -6,7 +6,7 @@ return {
   --    exist; lazy passes opts to require('kata').setup(opts).
   {
     'cds-io/kata-framework',
-    dir = '~/nvim-plugins/kata-framework',
+    dir = '~/dev/nvim-plugins/katas.nvim',
     opts = {
       katas = {
         solana_rust = '~/dev/solana-rust-vscode-course',
