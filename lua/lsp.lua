@@ -156,6 +156,53 @@ local function client_supports_method(client, method, bufnr)
   return client.supports_method(method, { bufnr = bufnr })
 end
 
+-- Handle of the float show_cursor_diagnostics last opened, so the toggle
+-- can close exactly that window and leave hover and signature floats alone.
+local diagnostic_win
+
+-- Open the diagnostic float for the cursor line and park it in the
+-- top-right corner so it never covers the cursor's column.
+local function show_cursor_diagnostics()
+  if not vim.g.diagnostic_float_auto then
+    return
+  end
+
+  -- Skip if another LSP float (hover, signature help, RustLsp explainError,
+  -- etc.) is already visible. vim.diagnostic.open_float routes through
+  -- vim.lsp.util.open_floating_preview, which closes the previous preview
+  -- before opening its own, so without this guard a CursorHold tick
+  -- 250ms after ,rx clobbers the explainError window.
+  for _, w in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_config(w).relative ~= '' then
+      return
+    end
+  end
+
+  local _, win = vim.diagnostic.open_float(nil, { focusable = false, source = 'if_many' })
+  if not win then
+    return
+  end
+  diagnostic_win = win
+
+  local cfg = vim.api.nvim_win_get_config(win)
+  cfg.anchor = 'NE'
+  cfg.row = 0
+  cfg.col = vim.o.columns - 1
+  cfg.width = math.min(cfg.width or 999, math.floor(vim.o.columns * 0.6))
+  cfg.height = math.min(cfg.height or 999, math.floor(vim.o.lines * 0.4))
+  vim.api.nvim_win_set_config(win, cfg)
+end
+
+-- Flip the global flag the CursorHold callback reads. When disabling, close
+-- the diagnostic float that is currently visible so the toggle feels immediate.
+local function toggle_diagnostic_popup()
+  vim.g.diagnostic_float_auto = not vim.g.diagnostic_float_auto
+  if not vim.g.diagnostic_float_auto and diagnostic_win and vim.api.nvim_win_is_valid(diagnostic_win) then
+    pcall(vim.api.nvim_win_close, diagnostic_win, true)
+  end
+  vim.notify('Diagnostic auto-popup: ' .. (vim.g.diagnostic_float_auto and 'on' or 'off'))
+end
+
 local function on_attach(event)
   local map = function(keys, func, desc, mode)
     mode = mode or 'n'
@@ -199,54 +246,9 @@ local function on_attach(event)
     end, '[T]oggle [C]olor previews')
   end
 
-  -- Toggle the CursorHold diagnostic auto-popup. Buffer-local for consistency
-  -- with the other <leader>t… toggles, but flips the global vim.g flag the
-  -- CursorHold autocmd reads.
-  map('<leader>td', function()
-    vim.g.diagnostic_float_auto = not vim.g.diagnostic_float_auto
-    -- When disabling, close any diagnostic float that's currently visible so
-    -- the toggle feels immediate.
-    if not vim.g.diagnostic_float_auto then
-      for _, w in ipairs(vim.api.nvim_list_wins()) do
-        if vim.api.nvim_win_get_config(w).relative ~= '' then
-          pcall(vim.api.nvim_win_close, w, true)
-        end
-      end
-    end
-    vim.notify('Diagnostic auto-popup: ' .. (vim.g.diagnostic_float_auto and 'on' or 'off'))
-  end, '[T]oggle [D]iagnostic auto-popup')
-end
-
--- Open the diagnostic float for the cursor line and park it in the
--- top-right corner so it never covers the cursor's column.
-local function show_cursor_diagnostics()
-  if not vim.g.diagnostic_float_auto then
-    return
-  end
-
-  -- Skip if another LSP float (hover, signature help, RustLsp explainError,
-  -- etc.) is already visible. vim.diagnostic.open_float routes through
-  -- vim.lsp.util.open_floating_preview, which closes the previous preview
-  -- before opening its own, so without this guard a CursorHold tick
-  -- 250ms after ,rx clobbers the explainError window.
-  for _, w in ipairs(vim.api.nvim_list_wins()) do
-    if vim.api.nvim_win_get_config(w).relative ~= '' then
-      return
-    end
-  end
-
-  local _, win = vim.diagnostic.open_float(nil, { focusable = false, source = 'if_many' })
-  if not win then
-    return
-  end
-
-  local cfg = vim.api.nvim_win_get_config(win)
-  cfg.anchor = 'NE'
-  cfg.row = 0
-  cfg.col = vim.o.columns - 1
-  cfg.width = math.min(cfg.width or 999, math.floor(vim.o.columns * 0.6))
-  cfg.height = math.min(cfg.height or 999, math.floor(vim.o.lines * 0.4))
-  vim.api.nvim_win_set_config(win, cfg)
+  -- Buffer-local for consistency with the other <leader>t toggles, though
+  -- the flag it flips is global.
+  map('<leader>td', toggle_diagnostic_popup, '[T]oggle [D]iagnostic auto-popup')
 end
 
 function M.setup()
