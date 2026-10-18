@@ -143,19 +143,6 @@ require('lazy').setup({
   -- Fuzzy finder keymaps live in lua/keymaps.lua; all pickers are driven
   -- by Snacks.picker (see lua/plugins/snacks.lua).
 
-  -- LSP Plugins
-  {
-    -- `lazydev` configures Lua LSP for your Neovim config, runtime and plugins
-    -- used for completion, annotations and signatures of Neovim apis
-    'folke/lazydev.nvim',
-    ft = 'lua',
-    opts = {
-      library = {
-        -- Load luvit types when the `vim.uv` word is found
-        { path = '${3rd}/luv/library', words = { 'vim%.uv' } },
-      },
-    },
-  },
   { -- Main LSP configuration; implementation in lua/lsp.lua
     'neovim/nvim-lspconfig',
     dependencies = {
