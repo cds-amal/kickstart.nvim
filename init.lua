@@ -630,6 +630,21 @@ require('lazy').setup({
         'vimdoc',
       }
 
+      -- Neovim only auto-starts treesitter highlighting for the filetypes
+      -- whose bundled ftplugin does so (lua, help, markdown, query); the
+      -- nvim-treesitter main branch never does it for you. Everything else
+      -- here still looked highlighted only because a legacy syntax/*.vim
+      -- ships in the runtime, which svelte lacks. Start the highlighter for
+      -- any buffer that has an installed parser.
+      vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('ts-highlight', { clear = true }),
+        callback = function(args)
+          if pcall(vim.treesitter.get_parser, args.buf) then
+            pcall(vim.treesitter.start, args.buf)
+          end
+        end,
+      })
+
       -- Use treesitter's AST-aware indentexpr wherever a parser AND indent
       -- queries are both available. Without the queries check, a parser with
       -- no indents.scm makes indentexpr return 0, sending <CR> to column 0.
