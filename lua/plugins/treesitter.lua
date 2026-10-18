@@ -79,18 +79,16 @@ return {
 
       -- Select keymaps
       local select = require('nvim-treesitter-textobjects.select').select_textobject
-      vim.keymap.set({ 'x', 'o' }, 'af', function()
-        select('@function.outer', 'textobjects')
-      end, { desc = 'outer function' })
-      vim.keymap.set({ 'x', 'o' }, 'if', function()
-        select('@function.inner', 'textobjects')
-      end, { desc = 'inner function' })
-      vim.keymap.set({ 'x', 'o' }, 'ac', function()
-        select('@class.outer', 'textobjects')
-      end, { desc = 'outer class' })
-      vim.keymap.set({ 'x', 'o' }, 'ic', function()
-        select('@class.inner', 'textobjects')
-      end, { desc = 'inner class' })
+      for _, m in ipairs {
+        { 'af', '@function.outer', 'outer function' },
+        { 'if', '@function.inner', 'inner function' },
+        { 'ac', '@class.outer', 'outer class' },
+        { 'ic', '@class.inner', 'inner class' },
+      } do
+        vim.keymap.set({ 'x', 'o' }, m[1], function()
+          select(m[2], 'textobjects')
+        end, { desc = m[3] })
+      end
 
       -- Swap keymaps
       local swap = require 'nvim-treesitter-textobjects.swap'
