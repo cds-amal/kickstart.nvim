@@ -1,4 +1,4 @@
-local ls = require('luasnip')
+local ls = require 'luasnip'
 local s = ls.snippet
 local sn = ls.snippet_node
 local i = ls.insert_node
@@ -24,16 +24,16 @@ local err_pair
 err_pair = function()
   return sn(nil, {
     c(1, {
-      t(''),
+      t '',
       sn(nil, {
         -- variant is i(1) so Tab reaches it before the msg at i(2),
         -- matching the NAME -> variant -> msg jump order of the parent.
-        t({ '', '    #[msg("' }),
+        t { '', '    #[msg("' },
         i(2),
-        t('")]'),
-        t({ '', '    ' }),
+        t '")]',
+        t { '', '    ' },
         i(1),
-        t(','),
+        t ',',
         d(3, err_pair, {}),
       }),
     }),
@@ -48,9 +48,15 @@ end
 -- between them with <C-f>/<C-b>.
 local function attr_choice(idx, default)
   local build = {
-    mut = function() return sn(nil, { t({ '#[account(mut)]', '' }) }) end,
-    custom = function() return sn(nil, { t('#[account('), i(1, 'mut'), t({ ')]', '' }) }) end,
-    none = function() return t('') end,
+    mut = function()
+      return sn(nil, { t { '#[account(mut)]', '' } })
+    end,
+    custom = function()
+      return sn(nil, { t '#[account(', i(1, 'mut'), t { ')]', '' } })
+    end,
+    none = function()
+      return t ''
+    end,
   }
   local order = {
     mut = { 'mut', 'custom', 'none' },
@@ -70,9 +76,9 @@ end
 -- index `idx`; cycle with <C-f>.
 local function acct_type(idx)
   return c(idx, {
-    sn(nil, { t("Account<'info, "), i(1, 'Type'), t('>') }),
-    t("UncheckedAccount<'info>"),
-    sn(nil, { t("InterfaceAccount<'info, "), i(1, 'Type'), t('>') }),
+    sn(nil, { t "Account<'info, ", i(1, 'Type'), t '>' }),
+    t "UncheckedAccount<'info>",
+    sn(nil, { t "InterfaceAccount<'info, ", i(1, 'Type'), t '>' }),
   })
 end
 
@@ -84,14 +90,14 @@ local function accounts_structs()
   local names = {}
   local armed = false
   for _, line in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
-    if line:match('#%[%s*derive%b()') and line:match('Accounts') then
+    if line:match '#%[%s*derive%b()' and line:match 'Accounts' then
       armed = true
     elseif armed then
-      local name = line:match('pub%s+struct%s+([%w_]+)')
+      local name = line:match 'pub%s+struct%s+([%w_]+)'
       if name then
         names[#names + 1] = name
         armed = false
-      elseif line:match('%S') and not line:match('^%s*#') then
+      elseif line:match '%S' and not line:match '^%s*#' then
         armed = false
       end
     end
@@ -110,7 +116,7 @@ end
 -- the trait *before* filling the write! args; editing it after discards them.
 local function impl_body(args)
   local trait = args[1][1] or ''
-  local seg = trait:match('([%w_]+)$')
+  local seg = trait:match '([%w_]+)$'
   if seg == 'Display' or seg == 'Debug' then
     local prefix = trait:sub(1, #trait - #seg)
     if prefix == '' then
@@ -118,14 +124,14 @@ local function impl_body(args)
     end
     return sn(nil, {
       t('    fn fmt(&self, f: &mut ' .. prefix .. "Formatter<'_>) -> " .. prefix .. 'Result {'),
-      t({ '', '        write!(f, "' }),
+      t { '', '        write!(f, "' },
       i(1),
-      t('"'),
+      t '"',
       i(2),
-      t({ ')', '    }' }),
+      t { ')', '    }' },
     })
   end
-  return sn(nil, { t('    '), i(1) })
+  return sn(nil, { t '    ', i(1) })
 end
 
 -- dynamicNode body for `hand`: offer the buffer's Accounts structs as choices
@@ -148,17 +154,17 @@ return {
   -- edition 2024 (Rust 1.85) for async closures proper.
   s('cl', {
     c(1, {
-      t(''),
-      t('move '),
-      t('async '),
-      t('async move '),
+      t '',
+      t 'move ',
+      t 'async ',
+      t 'async move ',
     }),
-    t('|'),
+    t '|',
     i(2),
-    t('| '),
+    t '| ',
     c(3, {
       sn(nil, { i(1) }),
-      sn(nil, { t({ '{', '    ' }), i(1), t({ '', '}' }) }),
+      sn(nil, { t { '{', '    ' }, i(1), t { '', '}' } }),
     }),
   }),
 
@@ -167,13 +173,13 @@ return {
   -- as the name matches; any other trait leaves a plain stop inside the braces.
   -- See `impl_body` above for the path-mirroring and regeneration caveats.
   s('impl', {
-    t('impl '),
+    t 'impl ',
     i(1, 'Trait'),
-    t(' for '),
+    t ' for ',
     i(2, 'Type'),
-    t({ ' {', '' }),
+    t { ' {', '' },
     d(3, impl_body, { 1 }),
-    t({ '', '}' }),
+    t { '', '}' },
   }),
 
   -- `tfn` -> bare #[test] fn
@@ -297,22 +303,13 @@ return {
   ),
 
   -- `peq` -> prop_assert_eq! with actual / expected
-  s(
-    'peq',
-    fmt('prop_assert_eq!({}, {});', { i(1, 'actual'), i(2, 'expected') })
-  ),
+  s('peq', fmt('prop_assert_eq!({}, {});', { i(1, 'actual'), i(2, 'expected') })),
 
   -- `passert` -> prop_assert!(cond)
-  s(
-    'passert',
-    fmt('prop_assert!({});', { i(1, 'cond') })
-  ),
+  s('passert', fmt('prop_assert!({});', { i(1, 'cond') })),
 
   -- `passume` -> prop_assume!(cond) to skip cases
-  s(
-    'passume',
-    fmt('prop_assume!({});', { i(1, 'cond') })
-  ),
+  s('passume', fmt('prop_assume!({});', { i(1, 'cond') })),
 
   -- =============================================================
   -- Anchor / Solana
@@ -358,33 +355,33 @@ return {
   -- to the field name and its type.
   s('acc', {
     attr_choice(1, 'mut'),
-    t('pub '),
+    t 'pub ',
     i(2, 'name'),
-    t(": Account<'info, "),
+    t ": Account<'info, ",
     i(3, 'Type'),
-    t('>,'),
+    t '>,',
   }),
 
   -- `sgn` -> Signer<'info> field. Signers are usually mut, so the attr line
   -- defaults to #[account(mut)]; <C-f> to change or drop it.
   s('sgn', {
     attr_choice(1, 'mut'),
-    t('pub '),
+    t 'pub ',
     i(2, 'name'),
-    t(": Signer<'info>,"),
+    t ": Signer<'info>,",
   }),
 
   -- `uacc` -> UncheckedAccount<'info> with the mandatory /// CHECK doc. The
   -- attr defaults to custom (#[account(...)]) since these usually carry an
   -- `address =` or seeds constraint; <C-f> to switch to mut or drop it.
   s('uacc', {
-    t('/// CHECK: '),
+    t '/// CHECK: ',
     i(1, 'why this is safe'),
-    t({ '', '' }),
+    t { '', '' },
     attr_choice(2, 'custom'),
-    t('pub '),
+    t 'pub ',
     i(3, 'name'),
-    t(": UncheckedAccount<'info>,"),
+    t ": UncheckedAccount<'info>,",
   }),
 
   -- `pda` -> mutable PDA (seeds + bump). The field type is a choice: Account,
@@ -409,20 +406,20 @@ return {
   -- The space line is a choice: <C-f> toggles between the discriminator-length
   -- form and the literal `8 +` form.
   s('initacc', {
-    t({ '#[account(', '    init,', '    payer = ' }),
+    t { '#[account(', '    init,', '    payer = ' },
     i(1, 'payer'),
-    t({ ',', '    space = ' }),
+    t { ',', '    space = ' },
     c(2, {
-      sn(nil, { rep(k('ty')), t('::DISCRIMINATOR.len() + '), rep(k('ty')), t('::INIT_SPACE') }),
-      sn(nil, { t('8 + '), rep(k('ty')), t('::INIT_SPACE') }),
+      sn(nil, { rep(k 'ty'), t '::DISCRIMINATOR.len() + ', rep(k 'ty'), t '::INIT_SPACE' }),
+      sn(nil, { t '8 + ', rep(k 'ty'), t '::INIT_SPACE' }),
     }),
-    t({ ',', '    seeds = [' }),
+    t { ',', '    seeds = [' },
     i(3, 'SEED'),
-    t({ '],', '    bump,', ')]', 'pub ' }),
+    t { '],', '    bump,', ')]', 'pub ' },
     i(4, 'name'),
-    t(": Account<'info, "),
+    t ": Account<'info, ",
     i(5, 'Type', { key = 'ty' }),
-    t('>,'),
+    t '>,',
   }),
 
   -- `imint` -> init a token mint via the token interface
@@ -430,60 +427,59 @@ return {
   -- from text nodes rather than fmta because the literal `<'info, Mint>` would
   -- collide with fmta's `<>` placeholder syntax.
   s('imint', {
-    t({ '#[account(', '    init,', '    payer = ' }),
+    t { '#[account(', '    init,', '    payer = ' },
     i(1, 'admin'),
-    t({ ',', '    mint::decimals = ' }),
+    t { ',', '    mint::decimals = ' },
     i(2, '6'),
-    t({ ',', '    mint::authority = ' }),
+    t { ',', '    mint::authority = ' },
     i(3, 'config'),
-    t({ ',', '    seeds = [' }),
+    t { ',', '    seeds = [' },
     i(4, 'SEED'),
-    t({ '],', '    bump,', ')]', 'pub ' }),
+    t { '],', '    bump,', ')]', 'pub ' },
     i(5, 'name'),
-    t(": InterfaceAccount<'info, Mint>,"),
+    t ": InterfaceAccount<'info, Mint>,",
   }),
 
   -- `prog` -> Program<'info, T> field (a custom program).
   s('prog', {
-    t('pub '),
+    t 'pub ',
     i(1, 'name'),
-    t(": Program<'info, "),
+    t ": Program<'info, ",
     i(2, 'Type'),
-    t('>,'),
+    t '>,',
   }),
 
   -- `sys` -> the standard system_program field (fixed, no tab stops).
-  s('sys', t("pub system_program: Program<'info, System>,")),
+  s('sys', t "pub system_program: Program<'info, System>,"),
 
   -- `tprog` -> the token program interface field (fixed, no tab stops).
-  s('tprog', t("pub token_program: Interface<'info, TokenInterface>,")),
+  s('tprog', t "pub token_program: Interface<'info, TokenInterface>,"),
 
   -- `hndl` -> Anchor instruction handler. The Context<...> type is a choice
   -- node populated from the #[derive(Accounts)] structs in this buffer (cycle
   -- with <C-f>; the last choice is free text). The stop right after Context<>
   -- is for extra args, e.g. `, amount: u64`; leave it empty for none.
   s('hndl', {
-    t('pub fn '),
+    t 'pub fn ',
     i(1, 'handler'),
-    t('(ctx: Context<'),
+    t '(ctx: Context<',
     d(2, ctx_node, {}),
-    t('>'),
+    t '>',
     i(3),
-    t({ ') -> Result<()> {', '    ' }),
+    t { ') -> Result<()> {', '    ' },
     i(0),
-    t({ '', '    Ok(())', '}' }),
+    t { '', '    Ok(())', '}' },
   }),
 
   -- `seed` -> seed byte-string constant. Type the byte-string name once
   -- (lowercase, by Rust convention); SEED_{} is auto-uppercased to match.
   s(
     'seed',
-    fmt(
-      'const SEED_{}: &[u8] = b"{}";',
-      {
-        f(function(args) return args[1][1]:upper() end, { 1 }),
-        i(1, 'name'),
-      }
-    )
+    fmt('const SEED_{}: &[u8] = b"{}";', {
+      f(function(args)
+        return args[1][1]:upper()
+      end, { 1 }),
+      i(1, 'name'),
+    })
   ),
 }

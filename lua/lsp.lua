@@ -69,12 +69,18 @@ local servers = {
 -- on the first match.
 local function find_link_at(line, col)
   local pos = 1
-  return vim.iter(function()
-    local s, e, text, url = line:find('%[([^%]]+)%]%(([^)]+)%)', pos)
-    if not s then return nil end
-    pos = e + 1
-    return { s = s, e = e, text = text, url = url }
-  end):find(function(l) return col >= l.s and col <= l.e end)
+  return vim
+    .iter(function()
+      local s, e, text, url = line:find('%[([^%]]+)%]%(([^)]+)%)', pos)
+      if not s then
+        return nil
+      end
+      pos = e + 1
+      return { s = s, e = e, text = text, url = url }
+    end)
+    :find(function(l)
+      return col >= l.s and col <= l.e
+    end)
 end
 
 -- Forward declaration so edit_in_place can reference follow_lsp_definition
@@ -92,7 +98,9 @@ local function edit_in_place(path, lnum, cnum)
   if lnum then
     pcall(vim.api.nvim_win_set_cursor, 0, { lnum, (cnum or 1) - 1 })
   end
-  vim.keymap.set('n', '<C-]>', function() follow_lsp_definition() end, {
+  vim.keymap.set('n', '<C-]>', function()
+    follow_lsp_definition()
+  end, {
     buffer = 0,
     desc = 'LSP: follow definition in place (chained)',
   })
@@ -121,22 +129,19 @@ follow_lsp_definition = function()
 end
 
 local function follow_hover_link()
-  local link = find_link_at(
-    vim.api.nvim_get_current_line(),
-    vim.api.nvim_win_get_cursor(0)[2] + 1
-  )
+  local link = find_link_at(vim.api.nvim_get_current_line(), vim.api.nvim_win_get_cursor(0)[2] + 1)
   if not link then
     vim.notify('No link under cursor', vim.log.levels.WARN)
     return
   end
 
   local url = link.url
-  if url:match('^file://') then
-    local path = vim.uri_decode(url:match('^file://([^#]+)'))
-    local lnum = tonumber(url:match('#L(%d+)')) or 1
-    local cnum = tonumber(url:match('#L%d+%%2C(%d+)') or url:match('#L%d+,(%d+)')) or 1
+  if url:match '^file://' then
+    local path = vim.uri_decode(url:match '^file://([^#]+)')
+    local lnum = tonumber(url:match '#L(%d+)') or 1
+    local cnum = tonumber(url:match '#L%d+%%2C(%d+)' or url:match '#L%d+,(%d+)') or 1
     edit_in_place(path, lnum, cnum)
-  elseif url:match('^https?://') then
+  elseif url:match '^https?://' then
     require('url-opener').open(url)
   else
     vim.notify('Unsupported scheme: ' .. url, vim.log.levels.INFO)
@@ -159,13 +164,25 @@ local function on_attach(event)
 
   map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
   map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
-  map('grr', function() Snacks.picker.lsp_references() end, '[G]oto [R]eferences')
-  map('gri', function() Snacks.picker.lsp_implementations() end, '[G]oto [I]mplementation')
-  map('grd', function() Snacks.picker.lsp_definitions() end, '[G]oto [D]efinition')
+  map('grr', function()
+    Snacks.picker.lsp_references()
+  end, '[G]oto [R]eferences')
+  map('gri', function()
+    Snacks.picker.lsp_implementations()
+  end, '[G]oto [I]mplementation')
+  map('grd', function()
+    Snacks.picker.lsp_definitions()
+  end, '[G]oto [D]efinition')
   map('grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
-  map('grs', function() Snacks.picker.lsp_symbols() end, '[S]ymbols (document)')
-  map('grw', function() Snacks.picker.lsp_workspace_symbols() end, '[W]orkspace symbols')
-  map('grt', function() Snacks.picker.lsp_type_definitions() end, '[G]oto [T]ype Definition')
+  map('grs', function()
+    Snacks.picker.lsp_symbols()
+  end, '[S]ymbols (document)')
+  map('grw', function()
+    Snacks.picker.lsp_workspace_symbols()
+  end, '[W]orkspace symbols')
+  map('grt', function()
+    Snacks.picker.lsp_type_definitions()
+  end, '[G]oto [T]ype Definition')
   map('<C-s>', vim.lsp.buf.signature_help, 'Signature Help', 'i')
 
   local client = vim.lsp.get_client_by_id(event.data.client_id)
@@ -203,7 +220,9 @@ local function on_attach(event)
   -- the cursor's column. CursorHold fires globally; configured here per-attach.
   vim.api.nvim_create_autocmd('CursorHold', {
     callback = function()
-      if not vim.g.diagnostic_float_auto then return end
+      if not vim.g.diagnostic_float_auto then
+        return
+      end
 
       -- Skip if another LSP float (hover, signature help, RustLsp explainError,
       -- etc.) is already visible. vim.diagnostic.open_float routes through
@@ -211,11 +230,15 @@ local function on_attach(event)
       -- before opening its own — so without this guard, a CursorHold tick
       -- 250ms after ,rx clobbers the explainError window.
       for _, w in ipairs(vim.api.nvim_list_wins()) do
-        if vim.api.nvim_win_get_config(w).relative ~= '' then return end
+        if vim.api.nvim_win_get_config(w).relative ~= '' then
+          return
+        end
       end
 
       local _, win = vim.diagnostic.open_float(nil, { focusable = false, source = 'if_many' })
-      if not win then return end
+      if not win then
+        return
+      end
 
       local cfg = vim.api.nvim_win_get_config(win)
       cfg.anchor = 'NE'

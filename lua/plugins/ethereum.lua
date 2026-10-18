@@ -15,7 +15,7 @@ return {
     { '<leader>Ha', '<cmd>EthBytesToAscii<cr>', mode = { 'n', 'v' }, desc = 'Eth: hex to [a]scii' },
   },
   config = function()
-    require('ethereum').setup({
+    require('ethereum').setup {
       -- calldata only for now; flip these on as each module is adopted
       address = false,
       cast = false,
@@ -23,6 +23,6 @@ return {
       scratch = false,
       trace = false,
       etherscan = false,
-    })
+    }
   end,
 }

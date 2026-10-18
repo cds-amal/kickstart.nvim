@@ -143,23 +143,23 @@ end
 --   * the body is a single-line expression.
 -- Anything else returns nil and a human-readable reason.
 function M.parse_macro_rules(text)
-  local name, block = text:match('macro_rules!%s+([%w_]+)%s*(%b{})')
+  local name, block = text:match 'macro_rules!%s+([%w_]+)%s*(%b{})'
   if not name then
     return nil, 'no macro_rules! definition found'
   end
 
   local inner = block:sub(2, -2)
-  local _, rule_end, pat, body_block = inner:find('%s*(%b())%s*=>%s*(%b{})')
+  local _, rule_end, pat, body_block = inner:find '%s*(%b())%s*=>%s*(%b{})'
   if not pat then
     return nil, ('%s!: could not find a `(...) => {...}` rule'):format(name)
   end
-  if not inner:sub(rule_end + 1):match('^[%s;]*$') then
+  if not inner:sub(rule_end + 1):match '^[%s;]*$' then
     return nil, ('%s!: more than one rule (only single-rule macros are supported)'):format(name)
   end
 
   -- pattern -> ordered :ident metavariables
   local pat_inner = pat:sub(2, -2)
-  if pat_inner:find('%$%(') then
+  if pat_inner:find '%$%(' then
     return nil, ('%s!: repetition in the pattern is not supported'):format(name)
   end
   local params = {}
@@ -167,7 +167,7 @@ function M.parse_macro_rules(text)
     params[#params + 1] = { var = var, frag = frag }
     return ''
   end)
-  if not leftover:match('^[%s,]*$') then
+  if not leftover:match '^[%s,]*$' then
     return nil, ('%s!: pattern has tokens beyond comma-separated metavariables'):format(name)
   end
   local names = {}
@@ -180,10 +180,10 @@ function M.parse_macro_rules(text)
 
   -- body -> single-line expression
   local body = vim.trim(body_block:sub(2, -2))
-  if body:find('\n') then
+  if body:find '\n' then
     return nil, ('%s!: body spans multiple lines'):format(name)
   end
-  if body:find('%$%(') then
+  if body:find '%$%(' then
     return nil, ('%s!: repetition in the body is not supported'):format(name)
   end
 
@@ -248,7 +248,7 @@ M._registry = registry
 -- offsets, but macro names are ASCII so the two agree at the positions we
 -- send.
 local function lsp_fetch_rule(bufnr, row, col)
-  if #vim.lsp.get_clients({ bufnr = bufnr }) == 0 then
+  if #vim.lsp.get_clients { bufnr = bufnr } == 0 then
     return nil, 'no LSP client attached'
   end
   local params = {
@@ -324,9 +324,9 @@ function M.toggle_transform(line, col, resolve)
       return nil, ("can't expand %s!: %s"):format(name, why or 'unknown macro')
     end
     local args = {}
-    for arg in raw_args:gmatch('[^,]+') do
+    for arg in raw_args:gmatch '[^,]+' do
       arg = vim.trim(arg)
-      if not arg:match('^[%w_]+$') then
+      if not arg:match '^[%w_]+$' then
         return nil, ("can't expand %s!: %q is not a plain identifier"):format(name, arg)
       end
       args[#args + 1] = arg
@@ -368,7 +368,7 @@ function M.toggle_transform(line, col, resolve)
     return nil, expand_err
   end
 
-  if line:find('%.to_account_info%(%)') then
+  if line:find '%.to_account_info%(%)' then
     return nil, 'to_account_info() receiver does not match any known macro expansion'
   end
   return nil, 'no macro call or known macro expansion on this line'

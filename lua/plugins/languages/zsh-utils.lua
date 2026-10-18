@@ -150,4 +150,3 @@ function M.split_command_simple(confirm)
 end
 
 return M
-

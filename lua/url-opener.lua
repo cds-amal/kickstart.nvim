@@ -10,9 +10,9 @@ local M = {}
 -- that need the handler argv can reuse it: preview.nvim, for one, hands temp
 -- files to the browser this way.
 function M.cmd()
-  if vim.fn.has('macunix') == 1 then
+  if vim.fn.has 'macunix' == 1 then
     return { 'open' }
-  elseif vim.fn.has('win32') == 1 then
+  elseif vim.fn.has 'win32' == 1 then
     return { 'cmd.exe', '/c', 'start', '""' }
   else
     return { 'xdg-open' }

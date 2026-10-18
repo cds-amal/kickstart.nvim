@@ -37,14 +37,14 @@ end
 -- gx URL opener: extracts the URL/repo from <cfile>, then delegates to the
 -- shared platform opener. Recognizes http(s):// directly and `owner/repo`
 -- shorthand (expanded to github.com/owner/repo).
-local url_opener = require('url-opener')
+local url_opener = require 'url-opener'
 
 local function open_url()
-  local url = vim.fn.expand('<cfile>')
+  local url = vim.fn.expand '<cfile>'
 
-  if url:match('^https?://') then
+  if url:match '^https?://' then
     url_opener.open(url)
-  elseif url:match('^[%w%-_%.]+/[%w%-_%.]+$') then
+  elseif url:match '^[%w%-_%.]+/[%w%-_%.]+$' then
     url_opener.open('https://github.com/' .. url, 'GitHub repo')
   else
     vim.notify('No valid URL or GitHub repo under cursor', vim.log.levels.WARN)
@@ -63,13 +63,13 @@ local function smart_paste(cmd)
   return function()
     vim.cmd('normal! ' .. vim.v.count1 .. '"' .. vim.v.register .. cmd)
     if vim.fn.getregtype(vim.v.register) == 'V' then
-      vim.cmd('silent normal! `[=`]')
+      vim.cmd 'silent normal! `[=`]'
     end
   end
 end
 
-vim.keymap.set({ 'n', 'x' }, 'p', smart_paste('p'), { desc = 'Paste (indent-aware)' })
-vim.keymap.set({ 'n', 'x' }, 'P', smart_paste('P'), { desc = 'Paste before (indent-aware)' })
+vim.keymap.set({ 'n', 'x' }, 'p', smart_paste 'p', { desc = 'Paste (indent-aware)' })
+vim.keymap.set({ 'n', 'x' }, 'P', smart_paste 'P', { desc = 'Paste before (indent-aware)' })
 
 -- Multigrep: `<pattern>  <glob>` live picker via Snacks.picker
 require('multigrep').setup()
@@ -93,25 +93,57 @@ map('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
 -- NOTE: <C-hjkl> window navigation is handled by vim-herdr-navigation
 -- (falls back to vim-tmux-navigator under tmux); see plugins/tmux-navigator.lua
-map('n', '<leader>sh', function() Snacks.picker.help() end, { desc = '[S]earch [H]elp' })
-map('n', '<leader>sk', function() Snacks.picker.keymaps() end, { desc = '[S]earch [K]eymaps' })
-map('n', '<leader>sf', function() Snacks.picker.files { hidden = true } end, { desc = '[S]earch [F]iles' })
-map('n', '<leader>ss', function() Snacks.picker() end, { desc = '[S]earch [S]elect picker' })
-map('n', '<leader>sw', function() Snacks.picker.grep_word() end, { desc = '[S]earch current [W]ord' })
-map('n', '<leader>sg', function() Snacks.picker.grep() end, { desc = '[S]earch by [G]rep' })
-map('n', '<leader>sm', function() Snacks.picker.git_status() end, { desc = '[S]earch Git [M]odified' })
-map('n', '<leader>sd', function() Snacks.picker.diagnostics() end, { desc = '[S]earch [D]iagnostics' })
-map('n', '<leader>sr', function() Snacks.picker.resume() end, { desc = '[S]earch [R]esume' })
-map('n', '<leader>s.', function() Snacks.picker.recent() end, { desc = '[S]earch Recent Files ("." for repeat)' })
-map('n', '<leader><leader>', function() Snacks.picker.buffers() end, { desc = '[ ] Find existing buffers' })
-map('n', '<leader>/', function() Snacks.picker.lines() end, { desc = '[/] Fuzzily search in current buffer' })
-map('n', '<leader>s/', function() Snacks.picker.grep_buffers() end, { desc = '[S]earch [/] in Open Files' })
-map('n', '<leader>sn', function() Snacks.picker.files { cwd = vim.fn.stdpath 'config', hidden = true } end, { desc = '[S]earch [N]eovim files' })
+map('n', '<leader>sh', function()
+  Snacks.picker.help()
+end, { desc = '[S]earch [H]elp' })
+map('n', '<leader>sk', function()
+  Snacks.picker.keymaps()
+end, { desc = '[S]earch [K]eymaps' })
+map('n', '<leader>sf', function()
+  Snacks.picker.files { hidden = true }
+end, { desc = '[S]earch [F]iles' })
+map('n', '<leader>ss', function()
+  Snacks.picker()
+end, { desc = '[S]earch [S]elect picker' })
+map('n', '<leader>sw', function()
+  Snacks.picker.grep_word()
+end, { desc = '[S]earch current [W]ord' })
+map('n', '<leader>sg', function()
+  Snacks.picker.grep()
+end, { desc = '[S]earch by [G]rep' })
+map('n', '<leader>sm', function()
+  Snacks.picker.git_status()
+end, { desc = '[S]earch Git [M]odified' })
+map('n', '<leader>sd', function()
+  Snacks.picker.diagnostics()
+end, { desc = '[S]earch [D]iagnostics' })
+map('n', '<leader>sr', function()
+  Snacks.picker.resume()
+end, { desc = '[S]earch [R]esume' })
+map('n', '<leader>s.', function()
+  Snacks.picker.recent()
+end, { desc = '[S]earch Recent Files ("." for repeat)' })
+map('n', '<leader><leader>', function()
+  Snacks.picker.buffers()
+end, { desc = '[ ] Find existing buffers' })
+map('n', '<leader>/', function()
+  Snacks.picker.lines()
+end, { desc = '[/] Fuzzily search in current buffer' })
+map('n', '<leader>s/', function()
+  Snacks.picker.grep_buffers()
+end, { desc = '[S]earch [/] in Open Files' })
+map('n', '<leader>sn', function()
+  Snacks.picker.files { cwd = vim.fn.stdpath 'config', hidden = true }
+end, { desc = '[S]earch [N]eovim files' })
 map('n', '<leader>ep', function()
   Snacks.picker.files { cwd = vim.fs.joinpath(vim.fn.stdpath 'data', 'lazy'), hidden = true }
 end, { desc = '[P]lugin path search' })
 
 -- Yank the current buffer's path to the system clipboard (the `%` register
 -- already holds the relative form for "%p / <C-r>%; these get it off-editor).
-map('n', '<leader>yp', function() vim.fn.setreg('+', vim.fn.expand '%:p') end, { desc = '[Y]ank absolute file [P]ath' })
-map('n', '<leader>yr', function() vim.fn.setreg('+', vim.fn.expand '%') end, { desc = '[Y]ank [R]elative file path' })
+map('n', '<leader>yp', function()
+  vim.fn.setreg('+', vim.fn.expand '%:p')
+end, { desc = '[Y]ank absolute file [P]ath' })
+map('n', '<leader>yr', function()
+  vim.fn.setreg('+', vim.fn.expand '%')
+end, { desc = '[Y]ank [R]elative file path' })

@@ -132,7 +132,7 @@ return {
         position = nil, -- ask for every runnable; we do our own cursor filtering
       }
       vim.lsp.buf_request(0, 'experimental/runnables', params, function(_, result)
-        local runnables = require('rustaceanvim.runnables')
+        local runnables = require 'rustaceanvim.runnables'
         local testables = vim.tbl_filter(is_testable, result or {})
         -- get_runnable_at_cursor_position prefers a specific test over the
         -- enclosing test-mod, so this only picks the module when the cursor
@@ -143,7 +143,7 @@ return {
           return
         end
         runnables.run_command(choice, testables)
-        local cached = require('rustaceanvim.cached_commands')
+        local cached = require 'rustaceanvim.cached_commands'
         cached.set_last_testable(choice, testables)
         cached.set_last_runnable(choice, testables)
       end)

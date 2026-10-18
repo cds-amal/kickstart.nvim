@@ -95,7 +95,7 @@ return {
     {
       '<leader>dE',
       function()
-        local expr = vim.fn.input('LLDB expr: ')
+        local expr = vim.fn.input 'LLDB expr: '
         if expr ~= '' then
           vim.cmd('DapViewWatch /nat expr -R -- ' .. expr)
         end
@@ -160,8 +160,7 @@ return {
     -- Enable breakpoint icons
     vim.api.nvim_set_hl(0, 'DapBreak', { fg = '#e51400' })
     vim.api.nvim_set_hl(0, 'DapStop', { fg = '#ffcc00' })
-    local breakpoint_icons = vim.g.have_nerd_font
-        and { Breakpoint = '', BreakpointCondition = '', BreakpointRejected = '', LogPoint = '', Stopped = '' }
+    local breakpoint_icons = vim.g.have_nerd_font and { Breakpoint = '', BreakpointCondition = '', BreakpointRejected = '', LogPoint = '', Stopped = '' }
       or { Breakpoint = '●', BreakpointCondition = '⊜', BreakpointRejected = '⊘', LogPoint = '◆', Stopped = '⭔' }
     for type, icon in pairs(breakpoint_icons) do
       local tp = 'Dap' .. type
@@ -174,7 +173,7 @@ return {
     vim.api.nvim_set_hl(0, 'FloatBorder', { link = 'Comment' })
 
     -- Rust LLDB pretty-printers (improves &str, Vec, HashMap display)
-    local rust_lldb = vim.fn.expand('~/.rustup/toolchains/1.88.0-aarch64-apple-darwin/lib/rustlib/etc')
+    local rust_lldb = vim.fn.expand '~/.rustup/toolchains/1.88.0-aarch64-apple-darwin/lib/rustlib/etc'
     dap.configurations.rust = {
       {
         name = 'Debug (with Rust formatters)',
@@ -198,8 +197,7 @@ return {
     -- JavaScript / TypeScript via vscode-js-debug (installed by Mason as
     -- 'js-debug-adapter'). Registers the 'pwa-node' adapter as a server
     -- launched on demand by Mason's bundled node script.
-    local js_debug = vim.fn.stdpath('data')
-      .. '/mason/packages/js-debug-adapter/js-debug/src/dapDebugServer.js'
+    local js_debug = vim.fn.stdpath 'data' .. '/mason/packages/js-debug-adapter/js-debug/src/dapDebugServer.js'
     dap.adapters['pwa-node'] = {
       type = 'server',
       host = 'localhost',
