@@ -145,14 +145,6 @@ local function follow_hover_link()
   end
 end
 
--- Nvim 0.10 vs 0.11 API shim; can drop once 0.10 support is dropped.
-local function client_supports_method(client, method, bufnr)
-  if vim.fn.has 'nvim-0.11' == 1 then
-    return client:supports_method(method, bufnr)
-  end
-  return client.supports_method(method, { bufnr = bufnr })
-end
-
 -- Handle of the float show_cursor_diagnostics last opened, so the toggle
 -- can close exactly that window and leave hover and signature floats alone.
 local diagnostic_win
@@ -236,13 +228,13 @@ local function on_attach(event)
   end
 
   local client = vim.lsp.get_client_by_id(event.data.client_id)
-  if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf) then
+  if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf) then
     map('<leader>th', function()
       vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
     end, '[T]oggle Inlay [H]ints')
   end
 
-  if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_documentColor, event.buf) then
+  if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_documentColor, event.buf) then
     vim.lsp.document_color.enable(true, { bufnr = event.buf }, { style = 'virtual' })
     map('<leader>tc', function()
       vim.lsp.document_color.enable(not vim.lsp.document_color.is_enabled { bufnr = event.buf }, { bufnr = event.buf }, { style = 'virtual' })
