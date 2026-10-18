@@ -200,34 +200,40 @@ local function toggle_diagnostic_popup()
   vim.notify('Diagnostic auto-popup: ' .. (vim.g.diagnostic_float_auto and 'on' or 'off'))
 end
 
+-- Defer the Snacks lookup to keypress time: Snacks is a global the snacks
+-- plugin installs, and the picker table is populated lazily.
+local function picker(name)
+  return function()
+    Snacks.picker[name]()
+  end
+end
+
+-- Buffer-local keymaps installed on every attach: { lhs, rhs, desc, mode }.
+-- Mode defaults to normal. <leader>td is buffer-local for consistency with
+-- the other <leader>t toggles, though the flag it flips is global.
+local attach_mappings = {
+  { 'grn', vim.lsp.buf.rename, '[R]e[n]ame' },
+  { 'gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' } },
+  { 'grr', picker 'lsp_references', '[G]oto [R]eferences' },
+  { 'gri', picker 'lsp_implementations', '[G]oto [I]mplementation' },
+  { 'grd', picker 'lsp_definitions', '[G]oto [D]efinition' },
+  { 'grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration' },
+  { 'grs', picker 'lsp_symbols', '[S]ymbols (document)' },
+  { 'grw', picker 'lsp_workspace_symbols', '[W]orkspace symbols' },
+  { 'grt', picker 'lsp_type_definitions', '[G]oto [T]ype Definition' },
+  { '<C-s>', vim.lsp.buf.signature_help, 'Signature Help', 'i' },
+  { '<leader>td', toggle_diagnostic_popup, '[T]oggle [D]iagnostic auto-popup' },
+}
+
 local function on_attach(event)
   local map = function(keys, func, desc, mode)
     mode = mode or 'n'
     vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
   end
 
-  map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
-  map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
-  map('grr', function()
-    Snacks.picker.lsp_references()
-  end, '[G]oto [R]eferences')
-  map('gri', function()
-    Snacks.picker.lsp_implementations()
-  end, '[G]oto [I]mplementation')
-  map('grd', function()
-    Snacks.picker.lsp_definitions()
-  end, '[G]oto [D]efinition')
-  map('grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
-  map('grs', function()
-    Snacks.picker.lsp_symbols()
-  end, '[S]ymbols (document)')
-  map('grw', function()
-    Snacks.picker.lsp_workspace_symbols()
-  end, '[W]orkspace symbols')
-  map('grt', function()
-    Snacks.picker.lsp_type_definitions()
-  end, '[G]oto [T]ype Definition')
-  map('<C-s>', vim.lsp.buf.signature_help, 'Signature Help', 'i')
+  for _, mapping in ipairs(attach_mappings) do
+    map(unpack(mapping))
+  end
 
   local client = vim.lsp.get_client_by_id(event.data.client_id)
   if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf) then
@@ -242,10 +248,6 @@ local function on_attach(event)
       vim.lsp.document_color.enable(not vim.lsp.document_color.is_enabled { bufnr = event.buf }, { bufnr = event.buf }, { style = 'virtual' })
     end, '[T]oggle [C]olor previews')
   end
-
-  -- Buffer-local for consistency with the other <leader>t toggles, though
-  -- the flag it flips is global.
-  map('<leader>td', toggle_diagnostic_popup, '[T]oggle [D]iagnostic auto-popup')
 end
 
 function M.setup()
