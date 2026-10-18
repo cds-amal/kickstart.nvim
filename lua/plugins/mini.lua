@@ -134,9 +134,13 @@ return { -- Collection of various small independent plugins/modules
       return '%2l:%-2v'
     end
 
+    -- Explicit split and join instead of mini's single toggle: gS is the
+    -- toggle's default key, reused here for split, and gJ shadows Vim's
+    -- join-without-spaces, which the treesitter-aware join supersedes.
+    -- treesj keeps its own <space>m/j/s family for node-aware splits.
     require('mini.splitjoin').setup {
       mappings = {
-        toggle = '', -- Disable default toggle to use our custom one
+        toggle = '',
         split = 'gS',
         join = 'gJ',
       },
