@@ -1,19 +1,10 @@
 return { -- Collection of various small independent plugins/modules
   'echasnovski/mini.nvim',
   config = function()
-    -- Better Around/Inside textobjects
-    --
-    -- Examples:
-    --  - va)  - [V]isually select [A]round [)]paren
-    --  - yinq - [Y]ank [I]nside [N]ext [Q]uote
-    --  - ci'  - [C]hange [I]nside [']quote
+    -- Around/Inside textobjects: va) yinq ci'
     require('mini.ai').setup { n_lines = 500 }
 
-    -- Add/delete/replace surroundings (brackets, quotes, etc.)
-    --
-    -- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
-    -- - sd'   - [S]urround [D]elete [']quotes
-    -- - sr)'  - [S]urround [R]eplace [)] [']
+    -- Add/delete/replace surroundings: saiw) sd' sr)'
     require('mini.surround').setup {
       -- Linewise adds (V sa, or a linewise motion like sa_ / sa2j) place
       -- each delimiter on its own line and indent the wrapped lines;
@@ -118,16 +109,10 @@ return { -- Collection of various small independent plugins/modules
       },
     }
 
-    -- Simple and easy statusline.
-    --  You could remove this setup call if you don't like it,
-    --  and try some other statusline plugin
     local statusline = require 'mini.statusline'
-    -- set use_icons to true if you have a Nerd Font
     statusline.setup { use_icons = vim.g.have_nerd_font }
 
-    -- You can configure sections in the statusline by overriding their
-    -- default behavior. For example, here we set the section for
-    -- cursor location to LINE:COLUMN
+    -- Cursor location as LINE:COLUMN, prefixed with plugin activity.
     ---@diagnostic disable-next-line: duplicate-set-field
     statusline.section_location = function()
       -- The plugins' runs out (`⟳ roots surfpool 14s`, `⟳ events google 2s`) ahead of
@@ -149,16 +134,12 @@ return { -- Collection of various small independent plugins/modules
       return '%2l:%-2v'
     end
 
-    -- Setup mini.splitjoin with its configuration
     require('mini.splitjoin').setup {
-      -- Default configuration
       mappings = {
         toggle = '', -- Disable default toggle to use our custom one
         split = 'gS',
         join = 'gJ',
       },
     }
-    -- ... and there is more!
-    --  Check out: https://github.com/echasnovski/mini.nvim
   end,
 }
