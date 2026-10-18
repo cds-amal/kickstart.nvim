@@ -215,40 +215,38 @@ local function on_attach(event)
     end
     vim.notify('Diagnostic auto-popup: ' .. (vim.g.diagnostic_float_auto and 'on' or 'off'))
   end, '[T]oggle [D]iagnostic auto-popup')
+end
 
-  -- Reposition diagnostic floats to the top-right so they don't overlap
-  -- the cursor's column. CursorHold fires globally; configured here per-attach.
-  vim.api.nvim_create_autocmd('CursorHold', {
-    callback = function()
-      if not vim.g.diagnostic_float_auto then
-        return
-      end
+-- Open the diagnostic float for the cursor line and park it in the
+-- top-right corner so it never covers the cursor's column.
+local function show_cursor_diagnostics()
+  if not vim.g.diagnostic_float_auto then
+    return
+  end
 
-      -- Skip if another LSP float (hover, signature help, RustLsp explainError,
-      -- etc.) is already visible. vim.diagnostic.open_float routes through
-      -- vim.lsp.util.open_floating_preview, which closes the previous preview
-      -- before opening its own — so without this guard, a CursorHold tick
-      -- 250ms after ,rx clobbers the explainError window.
-      for _, w in ipairs(vim.api.nvim_list_wins()) do
-        if vim.api.nvim_win_get_config(w).relative ~= '' then
-          return
-        end
-      end
+  -- Skip if another LSP float (hover, signature help, RustLsp explainError,
+  -- etc.) is already visible. vim.diagnostic.open_float routes through
+  -- vim.lsp.util.open_floating_preview, which closes the previous preview
+  -- before opening its own, so without this guard a CursorHold tick
+  -- 250ms after ,rx clobbers the explainError window.
+  for _, w in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_config(w).relative ~= '' then
+      return
+    end
+  end
 
-      local _, win = vim.diagnostic.open_float(nil, { focusable = false, source = 'if_many' })
-      if not win then
-        return
-      end
+  local _, win = vim.diagnostic.open_float(nil, { focusable = false, source = 'if_many' })
+  if not win then
+    return
+  end
 
-      local cfg = vim.api.nvim_win_get_config(win)
-      cfg.anchor = 'NE'
-      cfg.row = 0
-      cfg.col = vim.o.columns - 1
-      cfg.width = math.min(cfg.width or 999, math.floor(vim.o.columns * 0.6))
-      cfg.height = math.min(cfg.height or 999, math.floor(vim.o.lines * 0.4))
-      vim.api.nvim_win_set_config(win, cfg)
-    end,
-  })
+  local cfg = vim.api.nvim_win_get_config(win)
+  cfg.anchor = 'NE'
+  cfg.row = 0
+  cfg.col = vim.o.columns - 1
+  cfg.width = math.min(cfg.width or 999, math.floor(vim.o.columns * 0.6))
+  cfg.height = math.min(cfg.height or 999, math.floor(vim.o.lines * 0.4))
+  vim.api.nvim_win_set_config(win, cfg)
 end
 
 function M.setup()
@@ -260,6 +258,13 @@ function M.setup()
   vim.api.nvim_create_autocmd('LspAttach', {
     group = vim.api.nvim_create_augroup('custom-lsp-attach', { clear = true }),
     callback = on_attach,
+  })
+
+  -- CursorHold is global, so one registration serves every attached buffer;
+  -- the callback itself bails when no diagnostics are on the line.
+  vim.api.nvim_create_autocmd('CursorHold', {
+    group = vim.api.nvim_create_augroup('custom-lsp-diagnostics', { clear = true }),
+    callback = show_cursor_diagnostics,
   })
 
   -- Make file:// links inside LSP hover floats navigable. We hook FileType
