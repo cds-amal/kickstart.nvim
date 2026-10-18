@@ -138,7 +138,6 @@ require 'filetypes'
 --    :Lazy update
 --
 require('lazy').setup({
-  'NMAC427/guess-indent.nvim', -- Detect tabstop and shiftwidth automatically
 
   -- Fuzzy finder keymaps live in lua/keymaps.lua; all pickers are driven
   -- by Snacks.picker (see lua/plugins/snacks.lua).
