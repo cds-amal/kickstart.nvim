@@ -114,13 +114,6 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
   end
 end
 
--- Add TLA filetype
-vim.filetype.add {
-  extension = {
-    tla = 'tla',
-  },
-}
-
 ---@type vim.Option
 local rtp = vim.opt.rtp
 rtp:prepend(lazypath)

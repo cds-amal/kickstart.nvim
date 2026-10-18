@@ -8,6 +8,9 @@ vim.filetype.add {
     plantuml = 'plantuml',
     pu = 'plantuml',
     iuml = 'plantuml',
+    -- TLA+ specs. The treesitter alias (tla -> tlaplus) lives in the
+    -- nvim-treesitter spec.
+    tla = 'tla',
   },
   -- filename = {
   --   ["Jenkinsfile"] = "groovy",  -- exact filename match
