@@ -17,7 +17,7 @@ Layout:
   picks them up in `init.lua`.
 - `lua/plugins/languages/` — aggregates multi-spec language configs.
 - `lua/<module>.lua` — non-plugin utility modules (git-commit, messages,
-  multigrep, truth-table-core, etc.).
+  multigrep, etc.).
 - `ftplugin/<ft>.lua` — filetype-specific buffer setup (cue, zsh).
 - `tests/` — plain Lua tests for utility modules.
 

@@ -29,6 +29,20 @@ return {
         'vimdoc',
       }
 
+      -- Scopes after/queries/html/injections.scm to Claude Code's prompt
+      -- buffer (filetype markdown.claudeprompt): there the markdown parser
+      -- hands the whole <prompt> block to html, which captures section
+      -- bodies as @none, and the query injects markdown back into them.
+      -- Registered here, not in a ftplugin: Neovim validates predicate names
+      -- when a query compiles, so an .html file opened before any prompt
+      -- buffer would otherwise lose every html injection. The source is a
+      -- string, not a buffer number, under get_string_parser (plugins parse
+      -- html and markdown strings for menus and previews), and a string has
+      -- no filetype. `force` lets :Lazy reload re-register without an error.
+      vim.treesitter.query.add_predicate('claudeprompt?', function(_, _, source)
+        return type(source) == 'number' and vim.bo[source].filetype:find('claudeprompt', 1, true) ~= nil
+      end, { force = true })
+
       -- Neovim only auto-starts treesitter highlighting for the filetypes
       -- whose bundled ftplugin does so (lua, help, markdown, query); the
       -- nvim-treesitter main branch never does it for you. Everything else
