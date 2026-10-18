@@ -57,30 +57,20 @@ local servers = {
   },
 }
 
--- Follow a markdown `file://` link inside an LSP hover float, in place.
--- Parses links of the form `[text](file:///path#L<line>%2C<col>)` (the format
--- vtsls and other typescript servers emit), URL-decodes the path so pnpm-style
--- `%40` segments resolve, then `:edit`s the target in the same float window.
--- Setting `bufhidden=hide` on the hover buffer keeps it alive after the buffer
--- switch so `<C-o>` (jumplist) can come back to it; `:edit` itself adds the
--- leave-position to the jumplist automatically.
--- Find the first markdown link `[text](url)` whose range contains `col` on
--- `line`. Returns `{ s, e, text, url }` or nil. vim.iter:find short-circuits
--- on the first match.
+-- Find the markdown link `[text](url)` whose range contains `col` on `line`.
+-- Returns `{ text, url }` or nil.
 local function find_link_at(line, col)
   local pos = 1
-  return vim
-    .iter(function()
-      local s, e, text, url = line:find('%[([^%]]+)%]%(([^)]+)%)', pos)
-      if not s then
-        return nil
-      end
-      pos = e + 1
-      return { s = s, e = e, text = text, url = url }
-    end)
-    :find(function(l)
-      return col >= l.s and col <= l.e
-    end)
+  while true do
+    local first, last, text, url = line:find('%[([^%]]+)%]%(([^)]+)%)', pos)
+    if not first then
+      return nil
+    end
+    if col >= first and col <= last then
+      return { text = text, url = url }
+    end
+    pos = last + 1
+  end
 end
 
 -- Forward declaration so edit_in_place can reference follow_lsp_definition
@@ -128,6 +118,13 @@ follow_lsp_definition = function()
   end)
 end
 
+-- Follow a markdown `file://` link inside an LSP hover float, in place.
+-- Parses links of the form `[text](file:///path#L<line>%2C<col>)` (the format
+-- vtsls and other typescript servers emit), URL-decodes the path so pnpm-style
+-- `%40` segments resolve, then `:edit`s the target in the same float window.
+-- Setting `bufhidden=hide` on the hover buffer keeps it alive after the buffer
+-- switch so `<C-o>` (jumplist) can come back to it; `:edit` itself adds the
+-- leave-position to the jumplist automatically.
 local function follow_hover_link()
   local link = find_link_at(vim.api.nvim_get_current_line(), vim.api.nvim_win_get_cursor(0)[2] + 1)
   if not link then
