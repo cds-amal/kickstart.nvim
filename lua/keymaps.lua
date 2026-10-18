@@ -93,51 +93,35 @@ map('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
 -- NOTE: <C-hjkl> window navigation is handled by vim-herdr-navigation
 -- (falls back to vim-tmux-navigator under tmux); see plugins/tmux-navigator.lua
-map('n', '<leader>sh', function()
-  Snacks.picker.help()
-end, { desc = '[S]earch [H]elp' })
-map('n', '<leader>sk', function()
-  Snacks.picker.keymaps()
-end, { desc = '[S]earch [K]eymaps' })
-map('n', '<leader>sf', function()
-  Snacks.picker.files { hidden = true }
-end, { desc = '[S]earch [F]iles' })
-map('n', '<leader>ss', function()
-  Snacks.picker()
-end, { desc = '[S]earch [S]elect picker' })
-map('n', '<leader>sw', function()
-  Snacks.picker.grep_word()
-end, { desc = '[S]earch current [W]ord' })
-map('n', '<leader>sg', function()
-  Snacks.picker.grep()
-end, { desc = '[S]earch by [G]rep' })
-map('n', '<leader>sm', function()
-  Snacks.picker.git_status()
-end, { desc = '[S]earch Git [M]odified' })
-map('n', '<leader>sd', function()
-  Snacks.picker.diagnostics()
-end, { desc = '[S]earch [D]iagnostics' })
-map('n', '<leader>sr', function()
-  Snacks.picker.resume()
-end, { desc = '[S]earch [R]esume' })
-map('n', '<leader>s.', function()
-  Snacks.picker.recent()
-end, { desc = '[S]earch Recent Files ("." for repeat)' })
-map('n', '<leader><leader>', function()
-  Snacks.picker.buffers()
-end, { desc = '[ ] Find existing buffers' })
-map('n', '<leader>/', function()
-  Snacks.picker.lines()
-end, { desc = '[/] Fuzzily search in current buffer' })
-map('n', '<leader>s/', function()
-  Snacks.picker.grep_buffers()
-end, { desc = '[S]earch [/] in Open Files' })
-map('n', '<leader>sn', function()
-  Snacks.picker.files { cwd = vim.fn.stdpath 'config', hidden = true }
-end, { desc = '[S]earch [N]eovim files' })
-map('n', '<leader>ep', function()
-  Snacks.picker.files { cwd = vim.fs.joinpath(vim.fn.stdpath 'data', 'lazy'), hidden = true }
-end, { desc = '[P]lugin path search' })
+-- Snacks.picker bindings. picker(name, opts) defers the lookup to keypress
+-- time; Snacks is a global the snacks plugin installs at startup. A bare
+-- Snacks.picker() falls through to the 'pickers' source, hence <leader>ss.
+local function picker(name, opts)
+  return function()
+    Snacks.picker[name](opts)
+  end
+end
+
+local pickers = {
+  { '<leader>sh', picker 'help', '[S]earch [H]elp' },
+  { '<leader>sk', picker 'keymaps', '[S]earch [K]eymaps' },
+  { '<leader>sf', picker('files', { hidden = true }), '[S]earch [F]iles' },
+  { '<leader>ss', picker 'pickers', '[S]earch [S]elect picker' },
+  { '<leader>sw', picker 'grep_word', '[S]earch current [W]ord' },
+  { '<leader>sg', picker 'grep', '[S]earch by [G]rep' },
+  { '<leader>sm', picker 'git_status', '[S]earch Git [M]odified' },
+  { '<leader>sd', picker 'diagnostics', '[S]earch [D]iagnostics' },
+  { '<leader>sr', picker 'resume', '[S]earch [R]esume' },
+  { '<leader>s.', picker 'recent', '[S]earch Recent Files ("." for repeat)' },
+  { '<leader><leader>', picker 'buffers', '[ ] Find existing buffers' },
+  { '<leader>/', picker 'lines', '[/] Fuzzily search in current buffer' },
+  { '<leader>s/', picker 'grep_buffers', '[S]earch [/] in Open Files' },
+  { '<leader>sn', picker('files', { cwd = vim.fn.stdpath 'config', hidden = true }), '[S]earch [N]eovim files' },
+  { '<leader>ep', picker('files', { cwd = vim.fs.joinpath(vim.fn.stdpath 'data', 'lazy'), hidden = true }), '[P]lugin path search' },
+}
+for _, m in ipairs(pickers) do
+  map('n', m[1], m[2], { desc = m[3] })
+end
 
 -- Yank the current buffer's path to the system clipboard (the `%` register
 -- already holds the relative form for "%p / <C-r>%; these get it off-editor).
