@@ -115,14 +115,19 @@ return { -- Collection of various small independent plugins/modules
     -- Cursor location as LINE:COLUMN, prefixed with plugin activity.
     ---@diagnostic disable-next-line: duplicate-set-field
     statusline.section_location = function()
-      -- The plugins' runs out (`⟳ roots surfpool 14s`, `⟳ events google 2s`) ahead of
-      -- the cursor position while a projection, the roots list, a calendar page or a
-      -- create is being waited on; each plugin redraws the statusline once a second
-      -- while anything of its own is out.
+      -- The plugins' runs out (`⟳ roots surfpool 14s`, `⟳ events google 2s`,
+      -- `⟳ fetch RFC 9110 1s`) ahead of the cursor position while a projection, the
+      -- roots list, a calendar page, a create or an RFC is being waited on; each
+      -- plugin redraws the statusline once a second while anything of its own is out.
       local has_crosscut, crosscut = pcall(require, 'crosscut')
       local has_calplus, calplus = pcall(require, 'calplus')
+      local has_rfc, rfc = pcall(require, 'rfc')
       local segments = {}
-      for _, segment in ipairs { has_crosscut and crosscut.activity() or '', has_calplus and calplus.activity() or '' } do
+      for _, segment in ipairs {
+        has_crosscut and crosscut.activity() or '',
+        has_calplus and calplus.activity() or '',
+        has_rfc and rfc.activity() or '',
+      } do
         if segment ~= '' then
           segments[#segments + 1] = segment
         end
