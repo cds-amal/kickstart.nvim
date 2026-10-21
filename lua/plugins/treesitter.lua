@@ -49,11 +49,17 @@ return {
       -- here still looked highlighted only because a legacy syntax/*.vim
       -- ships in the runtime, which svelte lacks. Start the highlighter for
       -- any buffer that has an installed parser.
+      --
+      -- Require the highlights query too, not just the parser. Starting the
+      -- highlighter switches the legacy syntax off, so a parser with no
+      -- queries (a parser/ dir left over from the master branch, say)
+      -- would leave the buffer with no highlighting at all.
       vim.api.nvim_create_autocmd('FileType', {
         group = vim.api.nvim_create_augroup('ts-highlight', { clear = true }),
         callback = function(args)
-          if pcall(vim.treesitter.get_parser, args.buf) then
-            pcall(vim.treesitter.start, args.buf)
+          local lang = vim.treesitter.language.get_lang(vim.bo[args.buf].filetype)
+          if lang and pcall(vim.treesitter.get_parser, args.buf, lang) and vim.treesitter.query.get(lang, 'highlights') then
+            pcall(vim.treesitter.start, args.buf, lang)
           end
         end,
       })
