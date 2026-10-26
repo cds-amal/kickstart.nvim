@@ -43,6 +43,14 @@ require('lazy').setup({
   -- Auto-import every spec in lua/plugins/ (see `:help lazy.nvim-🔌-plugin-spec`).
   { import = 'plugins' },
 }, {
+  -- The plugin family's house library, cds-lua, is a dependency the plugins
+  -- pin in their own lazy.lua; with its checkout beside theirs it loads from
+  -- there, and from GitHub on a machine without one.
+  dev = {
+    path = '~/dev/nvim-plugins',
+    patterns = { 'cds-io/cds-lua' },
+    fallback = true,
+  },
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
     -- default lazy.nvim defined Nerd Font icons, otherwise define a unicode icons table

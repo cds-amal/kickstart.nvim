@@ -4,7 +4,8 @@
 -- runtimepath so `:help rfc9110` works in a fresh session, and the plugin's
 -- FileType autocmd attaches the fetch-on-E149 keys to its help buffers.
 return {
-  dir = '~/dev/nvim-plugins/rfc.nvim',
+  -- dir = '~/dev/nvim-plugins/rfc.nvim',
+  'cds-io/rfc.nvim',
   main = 'rfc',
   lazy = false,
   opts = {

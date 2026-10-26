@@ -4,6 +4,11 @@ return { -- Collection of various small independent plugins/modules
     -- Around/Inside textobjects: va) yinq ci'
     require('mini.ai').setup { n_lines = 500 }
 
+    -- The picker behind every vim.ui.select (rfc.nvim's :Eip among them);
+    -- `'final` at the prompt is an exact match.
+    require('mini.pick').setup()
+    vim.ui.select = require('mini.pick').ui_select
+
     -- Add/delete/replace surroundings: saiw) sd' sr)'
     require('mini.surround').setup {
       -- Linewise adds (V sa, or a linewise motion like sa_ / sa2j) place
