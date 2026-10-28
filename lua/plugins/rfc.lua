@@ -4,12 +4,13 @@
 -- runtimepath so `:help rfc9110` works in a fresh session, and the plugin's
 -- FileType autocmd attaches the fetch-on-E149 keys to its help buffers.
 return {
-  -- dir = '~/dev/nvim-plugins/rfc.nvim',
-  'cds-io/rfc.nvim',
+  -- The checkout while source/crs is unpublished; back to 'cds-io/rfc.nvim' once it lands.
+  dir = '~/dev/nvim-plugins/rfc.nvim',
+  -- 'cds-io/rfc.nvim',
   main = 'rfc',
   lazy = false,
   opts = {
-    sources = { rfc = true, eip = true, bip = true, simd = true, w3c = true },
+    sources = { rfc = true, eip = true, bip = true, simd = true, w3c = true, crs = true },
     -- Every rfc message goes through this, as calplus's do: snacks toasts float, so
     -- they leave cmdheight alone.
     notify = function(msg, level, opts)
